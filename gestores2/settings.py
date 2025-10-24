@@ -29,7 +29,7 @@ SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-yujkf=!kd56hv9
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['ricardo397.pythonanywhere.com','127.0.0.1', 'localhost']  # For testing only - restrict in production
+ALLOWED_HOSTS = ['ricardo397.pythonanywhere.com','127.0.0.1', 'localhost','gestores-like-home.onrender.com']  # For testing only - restrict in production
 
 
 # Application definition
