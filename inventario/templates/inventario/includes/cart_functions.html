@@ -1,0 +1,74 @@
+<script>
+function eliminarMaterial(materialId) {
+    fetch(`/carro/eliminar/${materialId}/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Actualizar todos los contenedores del carrito
+            updateAllCartContainers();
+            
+            // Actualizar el contador del carrito
+            updateCartBadge(data.cart_count);
+            
+            showToast('Material eliminado del carrito', 'success');
+        } else {
+            showToast('Error al eliminar el material', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error al eliminar el material', 'danger');
+    });
+}
+
+function updateAllCartContainers() {
+    fetch('/carro/widget/', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Actualizar todos los posibles contenedores
+        const containers = [
+            '#cartContainer',          // Contenedor en crear_pedido.html
+            '#cartModal .modal-body',  // Modal en inventario.html
+            '#cartButton .cart-content' // Carrito flotante
+        ];
+        
+        containers.forEach(selector => {
+            const container = document.querySelector(selector);
+            if (container) {
+                container.innerHTML = html;
+            }
+        });
+        
+        // Reinicializar eventos
+        initializeCartEvents();
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateCartBadge(count) {
+    const cartBadge = document.querySelector('#cartButton .badge');
+    if (cartBadge) {
+        cartBadge.textContent = count;
+    }
+}
+
+function showToast(message, type = 'success') {
+    Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: "top",
+        position: "right",
+        backgroundColor: type === 'success' ? "#28a745" : "#dc3545",
+    }).showToast();
+}
+</script>

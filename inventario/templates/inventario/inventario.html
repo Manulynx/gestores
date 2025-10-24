@@ -1,0 +1,67 @@
+{% extends "gestorapp/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+<div class="container mt-4">
+    {% include "inventario/includes/categoria_filter.html" %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card-container">
+                {% for material in materiales %}
+                    {% include "inventario/includes/material_card.html" %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if request.user.is_authenticated %}
+    {% include "inventario/includes/cart_button.html" %}
+    {% include "inventario/includes/cart_modal.html" %}
+{% endif %}
+
+{% include "inventario/includes/scripts.html" %}
+{% include "inventario/includes/styles.html" %}
+
+<style>
+.card-container {
+    /* Si usas grid en styles.html, puedes omitir esto */
+    width: 100%;
+}
+.card {
+    max-width: 100%;
+    box-sizing: border-box;
+    word-break: break-word;
+    overflow: hidden;
+}
+.card-title, .card-text {
+    overflow-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    max-width: 100%;
+}
+.card-img-top {
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Verificar si debe abrir el carrito
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('openCart') === 'true') {
+        const cartModal = new bootstrap.Modal(document.getElementById('cartModal'));
+        cartModal.show();
+    }
+});
+</script>
+
+{% endblock %}

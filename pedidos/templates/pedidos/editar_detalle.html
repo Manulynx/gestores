@@ -1,0 +1,210 @@
+{% extends "gestorapp/base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-white">Editar Artículos del Pedido #{{ pedido.id }}</h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        <table class="table table-dark">
+            <thead>
+                <tr>
+                    <th>Artículo</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unit.</th>
+                    <th>Total</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="detalles-tbody">
+                {% for detalle in detalles %}
+                <tr>
+                    <td>
+                        <select name="articulo[]" class="form-control" required onchange="updatePrice(this.closest('tr'))">
+                            {% for articulo in articulos %}
+                                <option value="{{ articulo.id }}" 
+                                        data-precio="{% if articulo.en_oferta %}{{ articulo.precio_oferta }}{% else %}{{ articulo.precio }}{% endif %}"
+                                        data-en-oferta="{{ articulo.en_oferta|lower }}"
+                                        data-precio-regular="{{ articulo.precio }}"
+                                        {% if detalle.material.id == articulo.id %}selected{% endif %}>
+                                    {{ articulo.nombre }}
+                                    {% if articulo.en_oferta %} (OFERTA) {% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" name="cantidad[]" value="{{ detalle.cantidad }}" 
+                               class="form-control" required min="1" onchange="updatePrice(this.closest('tr'))">
+                    </td>
+                    <td>
+                        <span class="precio-display">
+                            {% if detalle.en_oferta %}
+                                <span class="text-muted text-decoration-line-through">${{ detalle.precio_regular }}</span>
+                                <span class="text-danger">${{ detalle.precio_unitario }}</span>
+                            {% else %}
+                                ${{ detalle.precio_unitario }}
+                            {% endif %}
+                        </span>
+                    </td>
+                    <td>
+                        <input type="number" step="0.01" name="precio[]" value="{{ detalle.total }}" 
+                               class="form-control" readonly>
+                        <input type="hidden" name="precio_unitario[]" value="{{ detalle.precio_unitario }}">
+                        <input type="hidden" name="en_oferta[]" value="{{ detalle.en_oferta|lower }}">
+                        <input type="hidden" name="precio_regular[]" value="{{ detalle.precio_regular }}">
+                    </td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="eliminarFila(this)">Eliminar</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <button type="button" class="btn btn-primary" onclick="agregarFila()">Agregar Artículo</button>
+        <button type="submit" class="btn btn-success">Guardar Cambios</button>
+        <a href="{% url 'pedidos:lista_pedidos' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+
+<style>
+.table-dark {
+    background-color: rgba(33, 37, 41, 0.95);
+    margin-bottom: 2rem;
+}
+
+.precio-display {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.form-control {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.form-control:disabled, 
+.form-control[readonly] {
+    background-color: rgba(0, 0, 0, 0.2);
+}
+</style>
+
+<script>
+function updatePrice(row) {
+    const select = row.querySelector('select[name="articulo[]"]');
+    const cantidadInput = row.querySelector('input[name="cantidad[]"]');
+    const precioInput = row.querySelector('input[name="precio[]"]');
+    const precioDisplay = row.querySelector('.precio-display');
+    const precioUnitarioInput = row.querySelector('input[name="precio_unitario[]"]');
+    const enOfertaInput = row.querySelector('input[name="en_oferta[]"]');
+    const precioRegularInput = row.querySelector('input[name="precio_regular[]"]');
+    
+    if (!select.value) {
+        precioDisplay.innerHTML = '';
+        precioInput.value = '';
+        return;
+    }
+    
+    const selectedOption = select.options[select.selectedIndex];
+    const precioUnitario = parseFloat(selectedOption.dataset.precio) || 0;
+    const enOferta = selectedOption.dataset.enOferta === 'true';
+    const precioRegular = parseFloat(selectedOption.dataset.precioRegular) || 0;
+    const cantidad = Math.max(1, parseInt(cantidadInput.value) || 0);
+    
+    cantidadInput.value = cantidad; // Asegurar que la cantidad sea al menos 1
+    const total = precioUnitario * cantidad;
+    
+    precioInput.value = total.toFixed(2);
+    precioUnitarioInput.value = precioUnitario;
+    enOfertaInput.value = enOferta;
+    precioRegularInput.value = precioRegular;
+
+    if (enOferta) {
+        precioDisplay.innerHTML = `
+            <span class="text-muted text-decoration-line-through">$${precioRegular.toFixed(2)}</span>
+            <span class="text-danger ms-2">$${precioUnitario.toFixed(2)}</span>
+        `;
+    } else {
+        precioDisplay.innerHTML = `$${precioUnitario.toFixed(2)}`;
+    }
+}
+
+function agregarFila() {
+    const tbody = document.getElementById('detalles-tbody');
+    const newRow = document.createElement('tr');
+    newRow.innerHTML = `
+        <td>
+            <select name="articulo[]" class="form-control" required onchange="updatePrice(this.closest('tr'))">
+                <option value="">Seleccione un artículo</option>
+                {% for articulo in articulos %}
+                    <option value="{{ articulo.id }}" 
+                            data-precio="{% if articulo.en_oferta %}{{ articulo.precio_oferta }}{% else %}{{ articulo.precio }}{% endif %}"
+                            data-en-oferta="{{ articulo.en_oferta|lower }}"
+                            data-precio-regular="{{ articulo.precio }}">
+                        {{ articulo.nombre }}
+                        {% if articulo.en_oferta %} (OFERTA) {% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+        </td>
+        <td>
+            <input type="number" name="cantidad[]" class="form-control" required min="1" value="1"
+                   onchange="updatePrice(this.closest('tr'))">
+        </td>
+        <td>
+            <span class="precio-display"></span>
+        </td>
+        <td>
+            <input type="number" step="0.01" name="precio[]" class="form-control" readonly>
+            <input type="hidden" name="precio_unitario[]">
+            <input type="hidden" name="en_oferta[]">
+            <input type="hidden" name="precio_regular[]">
+        </td>
+        <td>
+            <button type="button" class="btn btn-danger btn-sm" onclick="eliminarFila(this)">
+                <i class="fas fa-trash"></i>
+            </button>
+        </td>
+    `;
+    tbody.appendChild(newRow);
+}
+
+function eliminarFila(button) {
+    button.closest('tr').remove();
+}
+
+// Initialize prices for existing rows
+document.querySelectorAll('#detalles-tbody tr').forEach(row => {
+    updatePrice(row);
+});
+
+document.querySelector('form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const filas = document.querySelectorAll('#detalles-tbody tr');
+    if (filas.length === 0) {
+        alert('Debe agregar al menos un artículo');
+        return;
+    }
+    
+    let isValid = true;
+    filas.forEach(row => {
+        const select = row.querySelector('select[name="articulo[]"]');
+        const cantidad = row.querySelector('input[name="cantidad[]"]');
+        
+        if (!select.value || !cantidad.value || cantidad.value < 1) {
+            isValid = false;
+        }
+    });
+    
+    if (!isValid) {
+        alert('Por favor complete todos los campos correctamente');
+        return;
+    }
+    
+    this.submit();
+});
+</script>
+{% endblock %}

@@ -1,0 +1,233 @@
+<!-- Modal para crear cliente rápidamente desde otros módulos -->
+<div class="modal fade" id="crearClienteModal" tabindex="-1" aria-labelledby="crearClienteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="crearClienteModalLabel">
+                    <i class="fas fa-user-plus"></i> Crear Nuevo Cliente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form id="form-crear-cliente-modal" method="POST">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.nombre.id_for_label }}_modal" class="form-label">
+                                    {{ form.nombre.label }} <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       name="nombre" 
+                                       id="{{ form.nombre.id_for_label }}_modal"
+                                       class="form-control" 
+                                       placeholder="Nombre del cliente"
+                                       required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.apellidos.id_for_label }}_modal" class="form-label">
+                                    {{ form.apellidos.label }} <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       name="apellidos" 
+                                       id="{{ form.apellidos.id_for_label }}_modal"
+                                       class="form-control" 
+                                       placeholder="Apellidos del cliente"
+                                       required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.carnet_identidad.id_for_label }}_modal" class="form-label">
+                                    {{ form.carnet_identidad.label }} <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       name="carnet_identidad" 
+                                       id="{{ form.carnet_identidad.id_for_label }}_modal"
+                                       class="form-control" 
+                                       placeholder="Carnet de identidad"
+                                       maxlength="11"
+                                       required>
+                                <div class="invalid-feedback"></div>
+                                <small class="form-text text-muted">11 caracteres exactos</small>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.telefono.id_for_label }}_modal" class="form-label">
+                                    {{ form.telefono.label }} <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       name="telefono" 
+                                       id="{{ form.telefono.id_for_label }}_modal"
+                                       class="form-control" 
+                                       placeholder="Número de teléfono"
+                                       required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="btn-guardar-cliente">
+                        <i class="fas fa-save"></i> Crear Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('crearClienteModal');
+    const form = document.getElementById('form-crear-cliente-modal');
+    const submitBtn = document.getElementById('btn-guardar-cliente');
+    
+    if (form) {
+        // Validaciones en tiempo real
+        setupModalValidations();
+        
+        // Manejar envío del formulario
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(form);
+            
+            // Mostrar estado de carga
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creando...';
+            
+            fetch('{% url "clientes:crear_cliente_modal" %}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Cerrar modal
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    modalInstance.hide();
+                    
+                    // Limpiar formulario
+                    form.reset();
+                    clearValidations();
+                    
+                    // Mostrar mensaje de éxito
+                    showSuccessMessage(data.message);
+                    
+                    // Trigger evento personalizado para que otros módulos puedan reaccionar
+                    document.dispatchEvent(new CustomEvent('clienteCreado', {
+                        detail: data.cliente
+                    }));
+                } else {
+                    // Mostrar errores
+                    showFormErrors(data.errors);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showErrorMessage('Error al crear el cliente. Inténtalo de nuevo.');
+            })
+            .finally(() => {
+                // Restaurar botón
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-save"></i> Crear Cliente';
+            });
+        });
+    }
+    
+    function setupModalValidations() {
+        // Validación para carnet
+        const carnetInput = document.getElementById('{{ form.carnet_identidad.id_for_label }}_modal');
+        if (carnetInput) {
+            carnetInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '').slice(0, 11);
+            });
+        }
+        
+        // Validación para nombres
+        const nombreInput = document.getElementById('{{ form.nombre.id_for_label }}_modal');
+        const apellidosInput = document.getElementById('{{ form.apellidos.id_for_label }}_modal');
+        
+        [nombreInput, apellidosInput].forEach(input => {
+            if (input) {
+                input.addEventListener('input', function() {
+                    this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+                    this.value = this.value.replace(/\b\w/g, l => l.toUpperCase());
+                });
+            }
+        });
+        
+        // Validación para teléfono
+        const telefonoInput = document.getElementById('{{ form.telefono.id_for_label }}_modal');
+        if (telefonoInput) {
+            telefonoInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9\s\-\(\)\+]/g, '');
+            });
+        }
+    }
+    
+    function showFormErrors(errors) {
+        clearValidations();
+        
+        for (const [field, messages] of Object.entries(errors)) {
+            const input = document.querySelector(`[name="${field}"]`);
+            const feedback = input?.parentElement.querySelector('.invalid-feedback');
+            
+            if (input && feedback) {
+                input.classList.add('is-invalid');
+                feedback.textContent = messages[0];
+            }
+        }
+    }
+    
+    function clearValidations() {
+        const inputs = form.querySelectorAll('.form-control');
+        const feedbacks = form.querySelectorAll('.invalid-feedback');
+        
+        inputs.forEach(input => {
+            input.classList.remove('is-invalid', 'is-valid');
+        });
+        
+        feedbacks.forEach(feedback => {
+            feedback.textContent = '';
+        });
+    }
+    
+    function showSuccessMessage(message) {
+        // Implementar según el sistema de notificaciones de tu app
+        // Por ejemplo, usando toasts de Bootstrap o una librería de notificaciones
+        alert(message); // Temporal - reemplazar con un sistema mejor
+    }
+    
+    function showErrorMessage(message) {
+        // Implementar según el sistema de notificaciones de tu app
+        alert(message); // Temporal - reemplazar con un sistema mejor
+    }
+    
+    // Limpiar formulario cuando se abre el modal
+    modal.addEventListener('show.bs.modal', function() {
+        form.reset();
+        clearValidations();
+    });
+});
+</script>

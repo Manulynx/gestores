@@ -1,0 +1,15 @@
+{% extends "gestorapp/base.html" %}
+
+{% block title %}Lista de Pedidos{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2 class="text-center text-white mb-4">Lista de Pedidos</h2>
+    <div class="table-responsive">
+        {% include "pedidos/includes/tabla_pedidos.html" %}
+    </div>
+</div>
+
+{% include "pedidos/includes/modales_eliminar.html" %}
+{% include "pedidos/includes/styles.html" %}
+{% endblock %}

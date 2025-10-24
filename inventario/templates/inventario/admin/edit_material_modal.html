@@ -1,0 +1,355 @@
+<!-- Modal para editar material -->
+<div class="modal fade" id="editarMaterial{{ material.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar {{ material.nombre }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editarMaterialForm{{ material.id }}" method="POST" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row g-3"> <!-- Agregado g-3 para espaciado consistente -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" name="nombre" value="{{ material.nombre }}" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Código</label>
+                                <input type="text" name="codigo" value="{{ material.codigo }}" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Precio USD</label>
+                                <input type="text" 
+                                       name="precio" 
+                                       value="{{ material.precio|default:'' }}"
+                                       class="form-control" 
+                                       pattern="[0-9]+([,\.][0-9]+)?"
+                                       title="Ingrese un número válido (use punto o coma para decimales)">
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" 
+                                           class="form-check-input" 
+                                           name="en_oferta" 
+                                           id="enOferta{{ material.id }}"
+                                           {% if material.en_oferta %}checked{% endif %}>
+                                    <label class="form-check-label" for="enOferta{{ material.id }}">En oferta</label>
+                                </div>
+                                <label class="form-label">Precio en Oferta ($)</label>
+                                <input type="text" 
+                                       name="precio_oferta" 
+                                       value="{{ material.precio_oferta|default:'' }}"
+                                       class="form-control"
+                                       pattern="[0-9]+([,\.][0-9]+)?"
+                                       title="Ingrese un número válido (use punto o coma para decimales)">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Comisión ($)</label>
+                                <input type="text" 
+                                       name="comision" 
+                                       value="{{ material.comision|default:'0' }}"
+                                       class="form-control"
+                                       pattern="[0-9]+([,\.][0-9]+)?"
+                                       title="Ingrese un número válido (use punto o coma para decimales)">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Cantidad</label>
+                                <input type="number" name="cantidad" value="{{ material.cantidad }}" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Categoría</label>
+                                <select name="categoria" class="form-control" required>
+                                    {% for cat in categorias %}
+                                        <option value="{{ cat.id }}" {% if cat.id == material.categoria.id %}selected{% endif %}>
+                                            {{ cat.nombre }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Imagen Principal</label>
+                                {% if material.imagen %}
+                                    <div class="mb-2">
+                                        <img src="{{ material.imagen.url }}" alt="Imagen actual" class="img-thumbnail" style="max-height: 100px;">
+                                    </div>
+                                {% endif %}
+                                <input type="file" 
+                                       name="imagen" 
+                                       class="form-control" 
+                                       accept="image/*">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Imágenes Adicionales</label>
+                                {% if material.imagenes.all %}
+                                    <div class="mb-2 d-flex gap-2 flex-wrap" id="imagenesSecundarias{{ material.id }}">
+                                        {% for img in material.imagenes.all %}
+                                            <div class="position-relative imagen-secundaria" id="imagen-{{ img.id }}">
+                                                <img src="{{ img.imagen.url }}" 
+                                                     alt="Imagen secundaria" 
+                                                     class="img-thumbnail" 
+                                                     style="max-height: 100px;">
+                                                <button type="button" 
+                                                        class="btn btn-danger btn-sm position-absolute top-0 end-0"
+                                                        onclick="eliminarImagenSecundaria('{{ img.id }}', this)">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                                <input type="file" 
+                                       name="imagenes_secundarias" 
+                                       class="form-control" 
+                                       accept="image/*" 
+                                       multiple
+                                       onchange="previewImagenesSecundarias(this, '{{ material.id }}')">
+                                <div id="previewImagenesSecundarias{{ material.id }}" class="mt-2 d-flex gap-2 flex-wrap">
+                                </div>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Ficha Técnica</label>
+                                {% if material.ficha_tecnica %}
+                                    <div class="mb-2">
+                                        <a href="{{ material.ficha_tecnica.url }}" class="btn btn-sm btn-info" target="_blank">
+                                            <i class="fas fa-file-pdf me-1"></i>Ver actual
+                                        </a>
+                                    </div>
+                                {% endif %}
+                                <input type="file" name="ficha_tecnica" class="form-control" accept="application/pdf">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        <span class="btn-text">Guardar Cambios</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+document.getElementById('editarMaterialForm{{ material.id }}').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const form = this;
+    // Convertir comas a puntos en los campos numéricos antes de enviar
+    const numericInputs = form.querySelectorAll('input[pattern]');
+    numericInputs.forEach(input => {
+        if (input.value) {
+            input.value = input.value.replace(',', '.');
+        }
+    });
+    
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const spinner = submitBtn.querySelector('.spinner-border');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const modal = form.closest('.modal');
+    const modalInstance = bootstrap.Modal.getInstance(modal);
+
+    // Deshabilitar botón y mostrar spinner
+    submitBtn.disabled = true;
+    spinner.classList.remove('d-none');
+    btnText.textContent = 'Guardando...';
+
+    fetch('{% url "editar_material" material.id %}', {
+        method: 'POST',
+        body: new FormData(form),
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Usar SweetAlert2 para mostrar el mensaje de éxito
+            Swal.fire({
+                title: '¡Éxito!',
+                text: data.message || 'Material actualizado correctamente',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            }).then(() => {
+                modalInstance.hide();
+                location.reload();
+            });
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: data.message || 'Error al actualizar el material',
+                icon: 'error'
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'Error al procesar la solicitud',
+            icon: 'error'
+        });
+    })
+    .finally(() => {
+        // Restaurar botón
+        submitBtn.disabled = false;
+        spinner.classList.add('d-none');
+        btnText.textContent = 'Guardar Cambios';
+    });
+});
+
+function eliminarImagenSecundaria(imagenId, button) {
+    const container = button.closest('.imagen-secundaria');
+    
+    Swal.fire({
+        title: '¿Eliminar imagen?',
+        text: "Esta acción no se puede deshacer",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'No, cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/inventario/eliminar-imagen/${imagenId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    container.classList.add('removing');
+                    setTimeout(() => {
+                        container.remove();
+                        Swal.fire({
+                            title: '¡Eliminada!',
+                            text: 'La imagen ha sido eliminada correctamente',
+                            icon: 'success',
+                            toast: true,
+                            position: 'top-end',
+                            showConfirmButton: false,
+                            timer: 3000
+                        });
+                    }, 300);
+                } else {
+                    Swal.fire({
+                        title: 'Error',
+                        text: data.message || 'Error al eliminar la imagen',
+                        icon: 'error',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Error al eliminar la imagen',
+                    icon: 'error',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            });
+        }
+    });
+}
+
+function previewImagenesSecundarias(input, materialId) {
+    const previewContainer = document.getElementById(`previewImagenesSecundarias${materialId}`);
+    previewContainer.innerHTML = '';
+
+    if (input.files) {
+        Array.from(input.files).forEach(file => {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const previewDiv = document.createElement('div');
+                previewDiv.className = 'position-relative';
+                previewDiv.innerHTML = `
+                    <img src="${e.target.result}" 
+                         class="img-thumbnail" 
+                         style="max-height: 100px;">
+                    <span class="position-absolute top-0 end-0 badge bg-primary">
+                        Nueva
+                    </span>
+                `;
+                previewContainer.appendChild(previewDiv);
+            }
+            
+            reader.readAsDataURL(file);
+        });
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const enOfertaCheckbox = document.querySelector('#enOferta{{ material.id }}');
+    const precioOfertaInput = document.querySelector('input[name="precio_oferta"]');
+    
+    function togglePrecioOferta() {
+        precioOfertaInput.disabled = !enOfertaCheckbox.checked;
+        if (!enOfertaCheckbox.checked) {
+            precioOfertaInput.value = '';
+        }
+    }
+    
+    enOfertaCheckbox.addEventListener('change', togglePrecioOferta);
+    togglePrecioOferta(); // Ejecutar al cargar
+});
+</script>
+
+<style>
+/* Estilos actualizados */
+.modal-dialog {
+    max-width: 90%; /* Hacer el modal más ancho */
+    margin: 1.75rem auto;
+}
+
+@media (min-width: 992px) {
+    .modal-lg {
+        max-width: 900px; /* Ajustar el ancho máximo en pantallas grandes */
+    }
+}
+
+.modal-body {
+    max-height: 80vh; /* Altura máxima del cuerpo del modal */
+    overflow-y: auto; /* Permitir scroll si el contenido es muy largo */
+}
+
+.modal-content {
+    border: none;
+    border-radius: 8px;
+}
+
+/* Ajustes para el grid de imágenes */
+.imagen-secundaria {
+    flex: 0 0 auto; /* Evitar que las imágenes se estiren */
+    margin: 5px;
+    transition: all 0.3s ease;
+}
+
+.d-flex.gap-2.flex-wrap {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important;
+    gap: 10px !important;
+}
+
+/* Mantener los estilos existentes */
+.imagen-secundaria.removing {
+    transform: scale(0.8);
+    opacity: 0.5;
+}
+</style>

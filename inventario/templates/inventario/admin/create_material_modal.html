@@ -1,0 +1,185 @@
+<!-- Modal para crear nuevo material -->
+<div class="modal fade" id="crearMaterial" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nuevo Material</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="crearMaterialForm" method="POST" action="{% url 'crear_material' %}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Nombre</label>
+                                <input type="text" name="nombre" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Código</label>
+                                <input type="text" name="codigo" class="form-control">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Precio USD</label>
+                                <input type="text" 
+                                       name="precio" 
+                                       class="form-control" 
+                                       required
+                                       pattern="[0-9]+([,\.][0-9]+)?"
+                                       title="Ingrese un número válido (use punto o coma para decimales)">
+                            </div>
+                            <div class="mb-3">
+                                <div class="form-check mb-2">
+                                    <input type="checkbox" 
+                                           class="form-check-input" 
+                                           name="en_oferta" 
+                                           id="enOfertaNuevo">
+                                    <label class="form-check-label" for="enOfertaNuevo">En oferta</label>
+                                </div>
+                                <label class="form-label">Precio en Oferta ($)</label>
+                                <input type="text" 
+                                       name="precio_oferta" 
+                                       class="form-control"
+                                       pattern="[0-9]+([,\.][0-9]+)?"
+                                       disabled
+                                       title="Ingrese un número válido (use punto o coma para decimales)">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Comisión ($)</label>
+                                <input type="text" 
+                                       name="comision" 
+                                       class="form-control"
+                                       pattern="[0-9]+([,\.][0-9]+)?"
+                                       value="0"
+                                       title="Ingrese un número válido (use punto o coma para decimales)">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Cantidad</label>
+                                <input type="number" name="cantidad" class="form-control" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Categoría</label>
+                                <select name="categoria" class="form-control" required>
+                                    {% for cat in categorias %}
+                                        <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Imagen Principal</label>
+                                <input type="file" name="imagen" class="form-control" accept="image/*" required>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Imágenes Adicionales</label>
+                                <input type="file" name="imagenes_secundarias" class="form-control" accept="image/*" multiple>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Ficha Técnica</label>
+                                <input type="file" name="ficha_tecnica" class="form-control" accept="application/pdf">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">
+                        <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                        <i class="fas fa-plus me-2"></i>
+                        <span class="btn-text">Crear Material</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('crearMaterialForm');
+    const enOfertaCheckbox = form.querySelector('#enOfertaNuevo');
+    const precioOfertaInput = form.querySelector('input[name="precio_oferta"]');
+    
+    function togglePrecioOferta() {
+        precioOfertaInput.disabled = !enOfertaCheckbox.checked;
+        if (!enOfertaCheckbox.checked) {
+            precioOfertaInput.value = '';
+        }
+    }
+    
+    enOfertaCheckbox.addEventListener('change', togglePrecioOferta);
+    togglePrecioOferta(); // Ejecutar al cargar
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        // Convertir comas a puntos en los campos numéricos antes de enviar
+        const numericInputs = form.querySelectorAll('input[pattern]');
+        numericInputs.forEach(input => {
+            if (input.value) {
+                input.value = input.value.replace(',', '.');
+            }
+        });
+        
+        const submitBtn = form.querySelector('button[type="submit"]');
+        const spinner = submitBtn.querySelector('.spinner-border');
+        const btnIcon = submitBtn.querySelector('.fas');
+        const btnText = submitBtn.querySelector('.btn-text');
+        const modal = form.closest('.modal');
+        const modalInstance = bootstrap.Modal.getInstance(modal);
+        
+        // Deshabilitar botón y mostrar spinner
+        submitBtn.disabled = true;
+        spinner.classList.remove('d-none');
+        btnIcon.classList.add('d-none');
+        btnText.textContent = 'Creando...';
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                Swal.fire({
+                    title: '¡Éxito!',
+                    text: data.message || 'Material creado correctamente',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                }).then(() => {
+                    modalInstance.hide();
+                    form.reset();
+                    location.reload();
+                });
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: data.message || 'Error al crear el material',
+                    icon: 'error'
+                });
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Error al procesar la solicitud',
+                icon: 'error'
+            });
+        })
+        .finally(() => {
+            // Restaurar botón
+            submitBtn.disabled = false;
+            spinner.classList.add('d-none');
+            btnIcon.classList.remove('d-none');
+            btnText.textContent = 'Crear Material';
+        });
+    });
+});
+
+</script>

@@ -1,0 +1,263 @@
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Initialize all modals
+    var modals = document.querySelectorAll('.modal');
+    modals.forEach(function (modal) {
+        new bootstrap.Modal(modal);
+    });
+
+    // Event delegation for cart action buttons
+    document.addEventListener('click', function (e) {
+        const target = e.target;
+        if (target.classList.contains('cart-action-btn')) {
+            e.preventDefault();
+            const url = target.dataset.action;
+            updateCart(url);
+        } else if (target.classList.contains('add-to-cart-btn')) {
+            e.preventDefault();
+            const url = target.dataset.action;
+            updateCart(url);
+        }
+    });
+
+    function updateCartModal() {
+        fetch('/carro/widget/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            // Update cart modal content
+            const modalBody = document.querySelector('#cartModal .modal-body');
+            if (modalBody) {
+                modalBody.innerHTML = html;
+            }
+
+            // Update cart in crear_pedido.html
+            const cartContainer = document.querySelector('#cartContainer');
+            if (cartContainer) {
+                cartContainer.innerHTML = html;
+            }
+        });
+    }
+
+    function updateCart(url) {
+        fetch(url, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Update cart count badge
+            const cartBadge = document.querySelector('#cartButton .badge');
+            if (cartBadge) {
+                cartBadge.textContent = data.cart_count;
+            }
+
+            // Show notification
+            showToast(data.message, data.status);
+
+            // Update cart contents
+            updateCartModal();
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    function showToast(message, status) {
+        const toast = document.createElement('div');
+        toast.className = `toast align-items-center text-white bg-${status} border-0 position-fixed bottom-0 end-0 m-4`;
+        toast.setAttribute('role', 'alert');
+        toast.innerHTML = `
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        const bsToast = new bootstrap.Toast(toast);
+        bsToast.show();
+        toast.addEventListener('hidden.bs.toast', () => toast.remove());
+    }
+
+    function agregarAlCarro(button) {
+        const materialId = button.dataset.materialId;
+        const cantidadInput = document.getElementById(`cantidad-${materialId}`);
+        const cantidad = parseInt(cantidadInput.value);
+        
+        if (isNaN(cantidad) || cantidad < 1) {
+            showToast('Por favor ingrese una cantidad válida', 'danger');
+            return;
+        }
+
+        fetch(`/carro/actualizar/${materialId}/${cantidad}/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast(data.message, 'success');
+                updateCartModal();
+                
+                // Actualizar contador del carrito
+                const cartBadge = document.querySelector('#cartButton .badge');
+                if (cartBadge) {
+                    cartBadge.textContent = data.cart_count;
+                }
+                
+                // Resetear el input a 1
+                cantidadInput.value = 1;
+            } else {
+                showToast(data.message, 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error al agregar al carrito', 'danger');
+        });
+    }
+
+    window.updateCart = updateCart;
+
+    // Inicializar los tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+function eliminarMaterial(materialId) {
+    fetch(`/carro/eliminar/${materialId}/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Actualizar todos los widgets del carrito
+            updateCartWidgets();
+            
+            // Actualizar el contador del carrito
+            const cartBadge = document.querySelector('#cartButton .badge');
+            if (cartBadge) {
+                cartBadge.textContent = data.cart_count;
+            }
+            
+            showToast('Material eliminado del carrito', 'success');
+        } else {
+            showToast('Error al eliminar el material', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error al eliminar el material', 'danger');
+    });
+}
+
+function updateCartWidgets() {
+    fetch('/carro/widget/', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        // Actualizar el modal del carrito
+        const cartModal = document.querySelector('#cartModal .modal-body');
+        if (cartModal) {
+            cartModal.innerHTML = html;
+        }
+        
+        // Actualizar el carrito flotante
+        const cartButton = document.getElementById('cartButton');
+        if (cartButton) {
+            const cartContent = cartButton.querySelector('.cart-content');
+            if (cartContent) {
+                cartContent.innerHTML = html;
+            }
+        }
+        
+        // Reinicializar eventos después de actualizar
+        initializeCartEvents();
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+function updateCartContainer() {
+    const cartContainer = document.getElementById('cartContainer');
+    if (cartContainer) {
+        fetch('/carro/widget/', {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            cartContainer.innerHTML = html;
+        })
+        .catch(error => console.error('Error:', error));
+    }
+}
+
+function showToast(message, type = 'success') {
+    Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: "top",
+        position: "right",
+        backgroundColor: type === 'success' ? "#28a745" : "#dc3545",
+    }).showToast();
+}
+let imagenesModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // ...existing DOMContentLoaded code...
+    
+    // Initialize images modal
+    imagenesModal = new bootstrap.Modal(document.getElementById('imagenesModal'));
+});
+
+function mostrarImagenesModal(materialId) {
+    const carouselInner = document.querySelector('#imagenesCarousel .carousel-inner');
+    carouselInner.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-light" role="status"></div></div>';
+    
+    imagenesModal.show();
+
+    fetch(`/inventario/material/${materialId}/imagenes/`)
+        .then(response => response.json())
+        .then(data => {
+            let html = '';
+            // Agregar imagen principal
+            html += `
+                <div class="carousel-item active">
+                    <img src="${data.imagen_principal}" class="d-block w-100" alt="Imagen principal">
+                </div>
+            `;
+            
+            // Agregar imágenes secundarias
+            if (data.imagenes_secundarias && data.imagenes_secundarias.length > 0) {
+                data.imagenes_secundarias.forEach(imagen => {
+                    html += `
+                        <div class="carousel-item">
+                            <img src="${imagen.url}" class="d-block w-100" alt="Imagen secundaria">
+                        </div>
+                    `;
+                });
+            }
+            
+            carouselInner.innerHTML = html;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            carouselInner.innerHTML = '<p class="text-center text-danger">Error al cargar las imágenes.</p>';
+        });
+}
+</script>

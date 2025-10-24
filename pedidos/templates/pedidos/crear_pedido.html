@@ -1,0 +1,79 @@
+{% extends "gestorapp/base.html" %}
+
+{% block content %}
+<!-- Asegúrate de incluir Toastify CSS y JS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-6">
+            <h2 class="text-white">Datos del Pedido</h2>
+            {% include "pedidos/includes/form_pedido.html" %}
+        </div>
+        <div class="col-md-6">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="text-white">Resumen del Carrito</h2>
+                <a href="{% url 'inventario' %}?openCart=true" 
+                   class="btn btn-primary">
+                    <i class="fas fa-edit me-2"></i>Modificar Carrito
+                </a>
+            </div>
+            {% include "carro/resumen_solo_lectura.html" %}
+        </div>
+    </div>
+</div>
+
+{% include "inventario/includes/cart_functions.html" %}
+{% include "inventario/includes/scripts.html" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const carnetInput = document.querySelector('input[name="carnet_identidad_cliente"]');
+    const nombreInput = document.querySelector('input[name="nombre_cliente"]');
+    const apellidosInput = document.querySelector('input[name="apellidos_cliente"]');
+    const telefonoInput = document.querySelector('input[name="telefono_cliente"]');
+    
+    let timeoutId;
+
+    carnetInput.addEventListener('input', function() {
+        clearTimeout(timeoutId);
+        
+        // Solo buscar si hay 11 dígitos
+        if (this.value.length === 11) {
+            timeoutId = setTimeout(() => {
+                fetch(`/pedidos/buscar-cliente/${this.value}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Autocompletar campos
+                            nombreInput.value = data.cliente.nombre;
+                            apellidosInput.value = data.cliente.apellidos;
+                            telefonoInput.value = data.cliente.telefono;
+                            
+                            // Deshabilitar campos
+                            nombreInput.readOnly = true;
+                            apellidosInput.readOnly = true;
+                            telefonoInput.readOnly = true;
+                        } else {
+                            // Limpiar y habilitar campos si no se encuentra el cliente
+                            nombreInput.value = '';
+                            apellidosInput.value = '';
+                            telefonoInput.value = '';
+                            
+                            nombreInput.readOnly = false;
+                            apellidosInput.readOnly = false;
+                            telefonoInput.readOnly = false;
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                    });
+            }, 300);
+        }
+    });
+});
+</script>
+{% endblock %}

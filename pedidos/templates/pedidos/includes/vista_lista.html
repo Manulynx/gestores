@@ -1,0 +1,149 @@
+<div class="pedidos-cards-container">
+    <div class="row g-2">
+        {% for pedido in pedidos %}
+        <div class="col-12">
+            <div class="card pedido-card bg-dark border-secondary">
+                <div class="card-body p-2">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <!-- Columna Izquierda -->
+                        <div class="flex-grow-1 pe-2" style="min-width: 0;">
+                            <div class="d-flex align-items-center mb-1">
+                                <span class="badge bg-secondary me-2">#{{ pedido.id }}</span>
+                                <small class="text-muted">{{ pedido.created_at|date:"d/m/y H:i" }}</small>
+                            </div>
+                            
+                            <h6 class="card-title mb-1 text-truncate">
+                                {{ pedido.cliente.get_full_name }}
+                            </h6>
+                            
+                            <small class="text-muted d-block mb-1">
+                                Gestor: {{ pedido.user.get_full_name|truncatechars:15 }}
+                            </small>
+                            
+                            <div class="d-flex flex-wrap gap-1 mb-1">
+                                {% if pedido.estado == 'efectuado' %}
+                                    <span class="badge bg-success sm-badge">Efectuado</span>
+                                {% elif pedido.estado == 'pendiente' %}
+                                    <span class="badge bg-warning text-dark sm-badge">Pendiente</span>
+                                    {% if pedido.pedido_original %}
+                                        <span class="badge bg-info sm-badge" 
+                                              data-bs-toggle="tooltip" 
+                                              title="React. #{{ pedido.pedido_original.id }}">
+                                            <i class="fas fa-sync-alt fa-xs"></i> R{{ pedido.numero_reactivacion }}
+                                        </span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="badge bg-danger sm-badge">Cancelado</span>
+                                    {% if pedido.reactivaciones.exists %}
+                                        <span class="badge bg-secondary sm-badge" 
+                                              data-bs-toggle="tooltip" 
+                                              title="{{ pedido.reactivaciones.count }} reactivaciones">
+                                            <i class="fas fa-history fa-xs"></i> {{ pedido.reactivaciones.count }}
+                                        </span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Columna Derecha (Total + Acciones) -->
+                        <div class="d-flex flex-column align-items-end">
+                            <span class="fw-bold mb-1">{{ pedido.total }}</span>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'pedidos:detalle_pedido' pedido.id %}" class="btn btn-info">
+                                    <i class="fas fa-eye me-1"></i>Ver
+                                </a>
+                               <!--  {% if pedido.estado == 'pendiente' %}
+                                    <a href="{% url 'pedidos:editar_pedido' pedido.id %}" class="btn btn-info">
+                                        <i class="fas fa-edit me-1"></i>Editar
+                                    </a>
+                                    
+                                {% endif %}-->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info py-2 mb-0 small">
+                <i class="fas fa-info-circle me-1"></i>
+                No hay pedidos registrados
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<style>
+.pedidos-cards-container {
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.pedido-card {
+    border-radius: 8px;
+    transition: transform 0.2s;
+}
+
+.pedido-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.2);
+}
+
+.card-title {
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sm-badge {
+    padding: 0.25em 0.5em;
+    font-size: 0.75rem;
+    font-weight: normal;
+    border-radius: 4px;
+}
+
+.btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+.text-muted {
+    font-size: 0.8rem;
+}
+
+.fa-xs {
+    font-size: 0.7rem;
+}
+
+/* Optimización para pantallas muy pequeñas */
+@media (max-width: 380px) {
+    .pedido-card {
+        font-size: 0.85rem;
+    }
+    
+    .sm-badge {
+        font-size: 0.7rem;
+        padding: 0.2em 0.4em;
+    }
+    
+    .btn-group-sm .btn {
+        padding: 0.2rem 0.4rem;
+    }
+}
+</style>
+
+<script>
+// Inicializar tooltips
+document.addEventListener('DOMContentLoaded', function() {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function(tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl, {
+            boundary: 'window',
+            placement: 'top'
+        });
+    });
+});
+</script>

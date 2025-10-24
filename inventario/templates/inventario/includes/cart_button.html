@@ -1,0 +1,11 @@
+<button id="cartButton" 
+        class="btn btn-primary position-fixed bottom-0 end-0 m-4 rounded-circle shadow"
+        style="z-index: 1050; width: 60px; height: 60px;"
+        type="button"
+        data-bs-toggle="modal" 
+        data-bs-target="#cartModal">
+    <i class="fas fa-shopping-cart"></i>
+    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+        {{ request.session.carro|length }}
+    </span>
+</button>

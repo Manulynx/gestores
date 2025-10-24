@@ -1,0 +1,31 @@
+<style>
+@media screen and (max-width: 768px) {
+    .table tbody tr {
+        border: 1px solid rgba(255,255,255,0.2);
+        margin-bottom: 1rem;
+        background-color: rgba(0,0,0,0.2);
+        border-radius: 8px;
+        padding: 1rem;
+    }
+
+    .table tbody td {
+        border: none;
+        padding: 0.5rem;
+        text-align: right;
+        position: relative;
+    }
+
+    .table tbody td::before {
+        content: attr(data-label);
+        float: left;
+        font-weight: bold;
+        text-transform: uppercase;
+        font-size: 0.85em;
+    }
+
+    .btn-group-sm > .btn, .btn-sm {
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+}
+</style>

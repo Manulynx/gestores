@@ -1,0 +1,518 @@
+/* Estilos personalizados para la gestión de clientes */
+
+/* Lista de clientes */
+.clientes-table {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.clientes-table .table-hover tbody tr:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+    transition: all 0.2s ease-in-out;
+}
+
+.clientes-actions {
+    white-space: nowrap;
+}
+
+.clientes-actions .btn {
+    margin-right: 5px;
+    border-radius: 20px;
+    padding: 5px 10px;
+    font-size: 0.875rem;
+}
+
+.clientes-actions .btn:last-child {
+    margin-right: 0;
+}
+
+/* Formulario de cliente */
+.cliente-form {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.cliente-form .form-control {
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.cliente-form .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    outline: 0;
+}
+
+.cliente-form .form-control.is-invalid {
+    border-color: #dc3545;
+}
+
+.cliente-form .invalid-feedback {
+    display: block;
+    color: #dc3545;
+    font-size: 0.875rem;
+    margin-top: 5px;
+}
+
+/* Tarjetas de información */
+.cliente-card {
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease-in-out;
+}
+
+.cliente-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Estados y alertas */
+.alert-cliente {
+    border-radius: 8px;
+    border: none;
+    padding: 15px 20px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #0f5132;
+    border-left: 4px solid #28a745;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #842029;
+    border-left: 4px solid #dc3545;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #664d03;
+    border-left: 4px solid #ffc107;
+}
+
+/* Búsqueda */
+.search-box {
+    position: relative;
+}
+
+.search-box .form-control {
+    padding-right: 40px;
+}
+
+.search-box .search-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+}
+
+/* Paginación */
+.pagination {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.pagination .page-link {
+    border: none;
+    padding: 10px 15px;
+    color: #007bff;
+    background-color: #fff;
+    border-radius: 0;
+}
+
+.pagination .page-item.active .page-link {
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
+.pagination .page-link:hover {
+    background-color: #e9ecef;
+    border-color: #dee2e6;
+}
+
+/* Estados vacíos */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state i {
+    font-size: 4rem;
+    color: #adb5bd;
+    margin-bottom: 20px;
+}
+
+.empty-state h5 {
+    color: #495057;
+    margin-bottom: 10px;
+    font-weight: 600;
+}
+
+.empty-state p {
+    color: #6c757d;
+    margin-bottom: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .clientes-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .clientes-actions .btn {
+        margin-right: 0;
+        margin-bottom: 2px;
+        border-radius: 5px;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .cliente-form {
+        padding: 0 15px;
+    }
+    
+    /* Estilos para cards móviles */
+    .cliente-card-mobile {
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e9ecef;
+        transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    }
+    
+    .cliente-card-mobile:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    .cliente-card-mobile .card-body {
+        padding: 1rem;
+    }
+    
+    .cliente-card-mobile .card-title {
+        font-size: 1.1rem;
+        color: #ffffff;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .cliente-card-mobile .card-title i {
+        color: #0d6efd;
+    }
+    
+    .cliente-card-mobile .card-title strong {
+        color: #ffffff;
+    }
+    
+    .cliente-info-mobile {
+        font-size: 0.9rem;
+    }
+    
+    .cliente-info-mobile .text-muted {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+        color: #495057;
+    }
+    
+    .cliente-info-mobile .fw-bold {
+        font-weight: 600;
+        color: #ffffff;
+    }
+    
+    .cliente-info-mobile a {
+        color: #0d6efd;
+        transition: color 0.2s ease;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    
+    .cliente-info-mobile a:hover {
+        color: #0b5ed7;
+        text-decoration: underline;
+    }
+    
+    /* Dropdown de acciones en móvil */
+    .dropdown-toggle {
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        padding: 0.25rem 0.5rem;
+    }
+    
+    .dropdown-toggle:focus {
+        box-shadow: none;
+        border-color: transparent;
+    }
+    
+    .dropdown-menu {
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        border: 1px solid #e9ecef;
+    }
+    
+    .dropdown-item {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+        transition: background-color 0.2s ease;
+        color: #212529;
+    }
+    
+    .dropdown-item:hover {
+        background-color: #f8f9fa;
+        color: #212529;
+    }
+    
+    .dropdown-item i {
+        width: 16px;
+        margin-right: 8px;
+    }
+    
+    .dropdown-item.text-danger {
+        color: #dc3545 !important;
+    }
+    
+    .dropdown-item.text-danger:hover {
+        background-color: #f8d7da;
+        color: #721c24 !important;
+    }
+    
+    /* Botones de acción móvil */
+    .cliente-card-mobile .btn {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        min-height: 38px;
+        border: 1px solid;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .cliente-card-mobile .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .cliente-card-mobile .btn i {
+        margin-right: 4px;
+        font-size: 0.8rem;
+    }
+    
+    .cliente-card-mobile .gap-2 {
+        gap: 0.5rem !important;
+    }
+    
+    .cliente-card-mobile .flex-fill {
+        flex: 1 1 0%;
+    }
+    
+    /* Colores específicos para botones móviles */
+    .cliente-card-mobile .btn-info {
+        background-color: #17a2b8;
+        border-color: #17a2b8;
+        color: #ffffff;
+    }
+    
+    .cliente-card-mobile .btn-info:hover {
+        background-color: #138496;
+        border-color: #117a8b;
+        color: #ffffff;
+    }
+    
+    .cliente-card-mobile .btn-warning {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: #000000;
+        font-weight: 600;
+    }
+    
+    .cliente-card-mobile .btn-warning:hover {
+        background-color: #e0a800;
+        border-color: #d39e00;
+        color: #000000;
+    }
+    
+    .cliente-card-mobile .btn-danger {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: #ffffff;
+    }
+    
+    .cliente-card-mobile .btn-danger:hover {
+        background-color: #c82333;
+        border-color: #bd2130;
+        color: #ffffff;
+    }
+    
+    /* Ajustes para búsqueda en móvil */
+    .search-box {
+        margin-bottom: 1rem;
+    }
+    
+    .search-box .form-control {
+        font-size: 16px; /* Evita zoom en iOS */
+        border-radius: 8px;
+    }
+    
+    /* Header adaptativo */
+    .card-header {
+        padding: 1rem;
+    }
+    
+    .card-header h4 {
+        font-size: 1.25rem;
+    }
+    
+    .card-header .btn {
+        font-size: 0.875rem;
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+/* Loading states */
+.loading {
+    position: relative;
+    pointer-events: none;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading::before {
+    content: '\f110';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 1.5rem;
+    color: #007bff;
+    animation: spin 1s linear infinite;
+    z-index: 1;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Mejoras para dispositivos táctiles */
+@media (max-width: 480px) {
+    /* Cards más compactas en pantallas muy pequeñas */
+    .cliente-card-mobile .card-body {
+        padding: 0.75rem;
+    }
+    
+    .cliente-card-mobile .card-title {
+        font-size: 1rem;
+        color: #000000;
+        font-weight: 600;
+    }
+    
+    .cliente-info-mobile {
+        font-size: 0.85rem;
+        color: #000000;
+    }
+    
+    /* Botones más grandes para tocar */
+    .dropdown-toggle {
+        min-width: 40px;
+        min-height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .dropdown-item {
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+    }
+    
+    /* Espaciado mejorado */
+    .cliente-card-mobile {
+        margin-bottom: 1rem;
+    }
+    
+    /* Paginación más táctil */
+    .pagination .page-link {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+    }
+    
+    /* Header más compacto */
+    .card-header {
+        padding: 0.75rem 1rem;
+    }
+    
+    .card-header h4 {
+        font-size: 1.1rem;
+        margin-bottom: 0;
+    }
+    
+    .card-header .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.8rem;
+    }
+    
+    /* Estados vacíos más pequeños */
+    .empty-state {
+        padding: 40px 20px;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 15px;
+    }
+    
+    .empty-state h5 {
+        font-size: 1.1rem;
+    }
+    
+    .empty-state p {
+        font-size: 0.9rem;
+    }
+    
+    /* Botones de acción móvil para pantallas muy pequeñas */
+    .cliente-card-mobile .btn {
+        font-size: 0.8rem;
+        padding: 0.4rem 0.6rem;
+        min-height: 36px;
+    }
+    
+    .cliente-card-mobile .btn i {
+        margin-right: 2px;
+        font-size: 0.75rem;
+    }
+}

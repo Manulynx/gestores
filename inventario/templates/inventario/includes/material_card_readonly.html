@@ -1,0 +1,22 @@
+<div class="col mb-4">
+    <div class="card h-100 shadow-sm">
+        <div class="card-img-container">
+            {% if material.imagen %}
+                <img src="{{ material.imagen.url }}" 
+                     class="card-img-top" 
+                     alt="{{ material.nombre }}"
+                     loading="lazy">
+            {% endif %}
+        </div>
+        <div class="card-body text-center">
+            <h5 class="card-title">{{ material.nombre }}</h5>
+            <p class="card-text fw-bold">{{ material.precio }} USD $</p>
+            <p class="card-text">Cantidad en Stock: {{ material.cantidad }}</p>
+            {% if material.ficha_tecnica %}
+                <a href="{{ material.ficha_tecnica.url }}" class="btn btn-info btn-sm" download>
+                    <i class="fas fa-file-pdf me-2"></i>Ficha Técnica
+                </a>
+            {% endif %}
+        </div>
+    </div>
+</div>

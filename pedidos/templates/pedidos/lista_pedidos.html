@@ -1,0 +1,538 @@
+{% extends "gestorapp/base.html" %}
+
+{% block content %}
+{% csrf_token %}  <!-- Agregar esto justo después del block content -->
+<div class="container-fluid mt-4">
+    <div class="row">
+        <!-- Panel de filtros (sidebar) -->
+        <div class="col-md-3 mb-3">
+            <div class="card bg-dark text-white h-100 filter-card">
+                <div class="card-header d-flex justify-content-between align-items-center py-2">
+                    <span class="small"><i class="fas fa-filter me-1"></i>Filtros</span>
+                    <button class="btn btn-sm btn-outline-light" type="button" data-bs-toggle="collapse" data-bs-target="#filterPanel">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div class="collapse" id="filterPanel">
+                    <div class="card-body p-2">
+                        <form method="get" id="filterForm" onsubmit="return handleFilterSubmit(event)">
+                            <!-- Filtro de Cliente -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Cliente:</label>
+                                <select name="cliente" class="form-select form-select-sm">
+                                    <option value="">Todos los clientes</option>
+                                    {% for cliente in clientes %}
+                                        <option value="{{ cliente.id }}" {% if filtros_activos.cliente == cliente.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ cliente.nombre }} {{ cliente.apellidos }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Filtro de Gestor -->
+                            {% if user.is_superuser %}
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Gestor:</label>
+                                <select name="gestor" class="form-select form-select-sm">
+                                    <option value="">Todos los gestores</option>
+                                    {% for gestor in gestores %}
+                                        <option value="{{ gestor.id }}" {% if filtros_activos.gestor == gestor.id|stringformat:"s" %}selected{% endif %}>
+                                            {% if gestor.first_name %}{{ gestor.first_name }} {{ gestor.last_name }}{% else %}{{ gestor.username }}{% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            {% endif %}
+
+                            <!-- Filtro de Material -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Material:</label>
+                                <select name="material" class="form-select form-select-sm">
+                                    <option value="">Todos los materiales</option>
+                                    {% for material in materiales %}
+                                        <option value="{{ material.id }}" {% if filtros_activos.material == material.id|stringformat:"s" %}selected{% endif %}>
+                                            {{ material.nombre }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Filtro de Estado -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Estado:</label>
+                                <select name="estado" class="form-select form-select-sm">
+                                    <option value="">Todos los estados</option>
+                                    {% for estado in estados %}
+                                        <option value="{{ estado.value }}" {% if filtros_activos.estado == estado.value %}selected{% endif %}>
+                                            {{ estado.label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Filtros de Fecha -->
+                            <div class="mb-2">
+                                <label class="form-label small mb-1">Fecha:</label>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <input type="date" 
+                                               name="fecha_desde" 
+                                               class="form-control form-control-sm" 
+                                               value="{{ filtros_activos.fecha_desde|default:'' }}">
+                                    </div>
+                                    <div class="col-6">
+                                        <input type="date" 
+                                               name="fecha_hasta" 
+                                               class="form-control form-control-sm" 
+                                               value="{{ filtros_activos.fecha_hasta|default:'' }}">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Botones de Acción -->
+                            <div class="d-grid gap-2">
+                                <button type="button" class="btn btn-secondary btn-sm" id="limpiarFiltros">
+                                    <i class="fas fa-times me-1"></i>Limpiar
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabla de pedidos (contenido principal) -->
+        <div class="col-md-9">
+            <div class="card bg-dark text-white">
+                <div class="card-header py-2">
+                    <h2 class="card-title h5 mb-0">
+                        <i class="fas fa-clipboard-list me-2"></i>
+                        Mis Pedidos
+                    </h2>
+                </div>
+                <div class="card-body p-0">
+                    {% if pedidos.exists %}
+                    <div class="table-responsive">
+                        {% include "pedidos/includes/tabla_pedidos.html" %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-info m-3">
+                        No hay pedidos que mostrar.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Función para manejar los filtros
+function handleFilterSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const formData = new FormData(form);
+    const url = `${window.location.pathname}?${new URLSearchParams(formData)}`;
+    
+    // Mostrar indicador de carga
+    const loadingToast = Swal.fire({
+        title: 'Cargando...',
+        text: 'Actualizando resultados',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    fetch(url, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        loadingToast.close();
+        const tableContainer = document.querySelector('.table-responsive');
+        if (tableContainer) {
+            tableContainer.innerHTML = html;
+            if (typeof window.initializeTooltips === 'function') {
+                window.initializeTooltips();
+            }
+        } else {
+            document.querySelector('.card-body').innerHTML = html;
+        }
+        // Actualizar URL sin recargar la página
+        window.history.pushState({}, '', url);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        loadingToast.close();
+        Swal.fire({
+            title: 'Error',
+            text: 'Error al cargar los datos filtrados',
+            icon: 'error',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+        });
+    });
+    
+    return false;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const filterForm = document.getElementById('filterForm');
+    const selects = filterForm.querySelectorAll('select');
+    const dateInputs = filterForm.querySelectorAll('input[type="date"]');
+    const gestorSelect = filterForm.querySelector('select[name="gestor"]');
+    const clienteSelect = filterForm.querySelector('select[name="cliente"]');
+    
+    // Función para actualizar el select de clientes
+    async function updateClienteSelect(gestorId) {
+        try {
+            const response = await fetch(`/pedidos/get-clientes-by-gestor/?gestor_id=${gestorId || ''}`);
+            const clientes = await response.json();
+            
+            // Guardar el cliente seleccionado actualmente
+            const selectedClienteId = clienteSelect.value;
+            
+            // Limpiar el select de clientes
+            clienteSelect.innerHTML = '<option value="">Todos los clientes</option>';
+            
+            // Añadir los nuevos clientes
+            clientes.forEach(cliente => {
+                const option = document.createElement('option');
+                option.value = cliente.id;
+                option.textContent = `${cliente.nombre} ${cliente.apellidos}`;
+                clienteSelect.appendChild(option);
+            });
+            
+            // Restaurar la selección si el cliente aún existe en la nueva lista
+            if (selectedClienteId && clientes.some(c => c.id.toString() === selectedClienteId)) {
+                clienteSelect.value = selectedClienteId;
+            }
+        } catch (error) {
+            console.error('Error al cargar los clientes:', error);
+            Swal.fire({
+                title: 'Error',
+                text: 'Error al cargar los clientes',
+                icon: 'error',
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000
+            });
+        }
+    }
+    
+    // Evento para cuando cambia el gestor
+    if (gestorSelect) {
+        gestorSelect.addEventListener('change', function() {
+            updateClienteSelect(this.value);
+        });
+    }
+
+    // Manejar cambios en los selectores
+    selects.forEach(select => {
+        select.addEventListener('change', function() {
+            filterForm.dispatchEvent(new Event('submit'));
+        });
+    });
+
+    // Manejar cambios en las fechas con debounce
+    let dateTimeout;
+    dateInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            clearTimeout(dateTimeout);
+            dateTimeout = setTimeout(() => {
+                const fechaDesde = filterForm.querySelector('input[name="fecha_desde"]');
+                const fechaHasta = filterForm.querySelector('input[name="fecha_hasta"]');
+                
+                if (fechaDesde.value && fechaHasta.value && fechaDesde.value > fechaHasta.value) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: 'La fecha inicial no puede ser mayor que la fecha final',
+                        icon: 'error',
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                    this.value = '';
+                    return;
+                }
+                filterForm.dispatchEvent(new Event('submit'));
+            }, 300);
+        });
+    });
+
+    // Manejar el botón de limpiar filtros
+    const limpiarBtn = document.getElementById('limpiarFiltros');
+    if (limpiarBtn) {
+        limpiarBtn.addEventListener('click', async function() {
+            try {
+                // Mostrar indicador de carga
+                const loadingToast = Swal.fire({
+                    title: 'Limpiando filtros...',
+                    text: 'Por favor espere',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Limpiar todos los campos del formulario
+                const filterForm = document.getElementById('filterForm');
+                
+                // Primero resetear el formulario
+                filterForm.reset();
+                
+                // Forzar explícitamente el reset de todos los selects
+                filterForm.querySelectorAll('select').forEach(select => {
+                    select.value = '';
+                    // Asegurarse de que se seleccione la primera opción
+                    if (select.options.length > 0) {
+                        select.selectedIndex = 0;
+                    }
+                });
+
+                // Obtener la URL base sin parámetros
+                const baseUrl = window.location.pathname;
+
+                // Realizar la petición AJAX
+                const response = await fetch(baseUrl, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error en la respuesta del servidor');
+                }
+
+                const html = await response.text();
+                
+                // Actualizar la tabla
+                const tableContainer = document.querySelector('.table-responsive');
+                if (tableContainer) {
+                    tableContainer.innerHTML = html;
+                    if (typeof window.initializeTooltips === 'function') {
+                        window.initializeTooltips();
+                    }
+                }
+
+                // Actualizar la URL sin parámetros
+                window.history.pushState({}, '', baseUrl);
+
+                // Cerrar el indicador de carga y mostrar éxito
+                loadingToast.close();
+                Swal.fire({
+                    title: 'Filtros limpiados',
+                    icon: 'success',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 2000
+                });
+
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error',
+                    text: 'No se pudieron limpiar los filtros',
+                    icon: 'error',
+                    toast: true,
+                    position: 'top-end',
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            }
+        });
+    }
+
+    // Asignar el manejador al evento submit del formulario
+    filterForm.addEventListener('submit', handleFilterSubmit);
+    
+    // Inicializar tooltips al cargar la página
+    if (typeof window.initializeTooltips === 'function') {
+        window.initializeTooltips();
+    }
+});
+</script>
+<style>
+/* Estilos base */
+.card {
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* Panel de filtros */
+.filter-card {
+    background: #1e1e1e;
+}
+
+.filter-card .card-header {
+    background: #252525;
+    border-bottom: 1px solid #333;
+    padding: 15px;
+}
+
+.filter-card .card-body {
+    padding: 20px;
+}
+
+/* Controles de formulario */
+.form-select-sm,
+.form-control-sm {
+    background: #2d2d2d;
+    border: 1px solid #404040;
+    color: #fff;
+    border-radius: 8px;
+    padding: 8px 12px;
+}
+
+.form-select-sm:focus,
+.form-control-sm:focus {
+    background: #333;
+    border-color: #505050;
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.1);
+}
+
+/* Etiquetas */
+.form-label {
+    color: #bbb;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+/* Botones */
+.btn {
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-weight: 500;
+    border: none;
+}
+
+.btn-primary {
+    background: #4a90e2;
+}
+
+.btn-primary:hover {
+    background: #357abd;
+}
+
+.btn-secondary {
+    background: #4a4a4a;
+}
+
+.btn-secondary:hover {
+    background: #3a3a3a;
+}
+
+/* Badges */
+.badge {
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.badge.bg-success {
+    background: #2ecc71 !important;
+}
+
+.badge.bg-warning {
+    background: #f1c40f !important;
+    color: #2c3e50 !important;
+}
+
+.badge.bg-danger {
+    background: #e74c3c !important;
+}
+
+/* Badges de reactivación */
+.badge.bg-info {
+    background: #3498db !important;
+}
+
+.badge.bg-secondary {
+    background: #7f8c8d !important;
+}
+
+.badge i {
+    font-size: 0.8em;
+    margin-right: 2px;
+}
+
+/* Tooltip personalizado */
+.tooltip .tooltip-inner {
+    background-color: #2c3e50;
+    color: #fff;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 0.875rem;
+}
+
+/* Tabla */
+.table {
+    color: #fff;
+}
+
+.table th {
+    background: #252525;
+    border-bottom: 2px solid #333;
+    padding: 12px 16px;
+}
+
+.table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #333;
+}
+
+/* Responsive */
+@media (max-width: 767.98px) {
+    .filter-card {
+        margin-bottom: 20px;
+    }
+    
+    .table td {
+        padding: 8px 12px;
+    }
+}
+
+/* Mejorar la visualización de los filtros */
+.form-select-sm option {
+    background-color: #2d2d2d;
+    color: #fff;
+}
+
+.form-select-sm option:checked {
+    background-color: #4a90e2;
+}
+</style>
+{% endblock %}
+
+<td class="d-flex d-md-table-cell flex-column mb-2 mb-md-0">
+    <span class="d-inline d-md-none fw-bold text-muted small">Estado:</span>
+    {% if pedido.estado == 'efectuado' %}
+        <span class="badge bg-success">Efectuado</span>
+    {% elif pedido.estado == 'pendiente' %}
+        <span class="badge bg-warning text-dark">Pendiente</span>
+        {% if pedido.pedido_original %}
+            <span class="badge bg-info ms-1" data-bs-toggle="tooltip" title="Reactivación del pedido #{{ pedido.pedido_original.id }}">
+                <i class="fas fa-sync-alt"></i> R{{ pedido.numero_reactivacion }}
+            </span>
+        {% endif %}
+    {% else %}
+        <span class="badge bg-danger">Cancelado</span>
+        {% if pedido.reactivaciones.exists %}
+            <span class="badge bg-secondary ms-1" data-bs-toggle="tooltip" 
+                  title="Reactivado en pedido #{% for reactivacion in pedido.reactivaciones.all %}{{ reactivacion.id }}{% if not forloop.last %}, #{% endif %}{% endfor %}">
+                <i class="fas fa-history"></i> {{ pedido.reactivaciones.count }}
+            </span>
+        {% endif %}
+    {% endif %}
+</td>

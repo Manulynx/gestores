@@ -1,0 +1,349 @@
+<!-- Widget de autocompletado para selección de clientes -->
+<div class="cliente-selector">
+    <div class="form-group">
+        <label for="cliente-search" class="form-label">
+            <i class="fas fa-user"></i> Buscar Cliente
+        </label>
+        <div class="input-group">
+            <input type="text" 
+                   id="cliente-search" 
+                   class="form-control" 
+                   placeholder="Buscar por nombre, carnet o teléfono..."
+                   autocomplete="off">
+            <button type="button" class="btn btn-outline-primary" id="btn-nuevo-cliente">
+                <i class="fas fa-plus"></i> Nuevo
+            </button>
+        </div>
+        
+        <!-- Dropdown de resultados -->
+        <div id="cliente-dropdown" class="dropdown-menu w-100" style="display: none;">
+            <div id="cliente-results"></div>
+            <div class="dropdown-divider"></div>
+            <a class="dropdown-item text-center text-muted" href="#" id="no-results" style="display: none;">
+                <i class="fas fa-search"></i> No se encontraron clientes
+            </a>
+        </div>
+        
+        <!-- Cliente seleccionado -->
+        <div id="cliente-selected" class="mt-2" style="display: none;">
+            <div class="card border-success">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong id="cliente-nombre"></strong><br>
+                            <small class="text-muted">
+                                CI: <span id="cliente-carnet"></span> | 
+                                Tel: <span id="cliente-telefono"></span>
+                            </small>
+                        </div>
+                        <button type="button" class="btn btn-outline-danger btn-sm" id="btn-clear-cliente">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- Input oculto para enviar el ID del cliente -->
+            <input type="hidden" id="cliente-id" name="cliente_id" value="">
+        </div>
+    </div>
+</div>
+
+<style>
+.cliente-selector {
+    position: relative;
+}
+
+.cliente-selector .dropdown-menu {
+    max-height: 300px;
+    overflow-y: auto;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    z-index: 1050;
+}
+
+.cliente-selector .dropdown-item {
+    padding: 10px 15px;
+    border-bottom: 1px solid #f8f9fa;
+}
+
+.cliente-selector .dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.cliente-selector .dropdown-item:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.cliente-selector .dropdown-item.active {
+    background-color: #007bff;
+    color: white;
+}
+
+.cliente-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.cliente-datos {
+    flex-grow: 1;
+}
+
+.cliente-actions {
+    margin-left: 10px;
+}
+
+.search-loading {
+    text-align: center;
+    padding: 15px;
+    color: #6c757d;
+}
+</style>
+
+<script>
+class ClienteSelector {
+    constructor(containerId, options = {}) {
+        this.container = document.getElementById(containerId) || document.querySelector(containerId);
+        this.options = {
+            onClienteSelected: options.onClienteSelected || function() {},
+            onClienteCleared: options.onClienteCleared || function() {},
+            required: options.required || false,
+            ...options
+        };
+        
+        this.init();
+    }
+    
+    init() {
+        this.searchInput = this.container.querySelector('#cliente-search');
+        this.dropdown = this.container.querySelector('#cliente-dropdown');
+        this.results = this.container.querySelector('#cliente-results');
+        this.noResults = this.container.querySelector('#no-results');
+        this.selectedDiv = this.container.querySelector('#cliente-selected');
+        this.clienteNombre = this.container.querySelector('#cliente-nombre');
+        this.clienteCarnet = this.container.querySelector('#cliente-carnet');
+        this.clienteTelefono = this.container.querySelector('#cliente-telefono');
+        this.clienteIdInput = this.container.querySelector('#cliente-id');
+        this.btnNuevo = this.container.querySelector('#btn-nuevo-cliente');
+        this.btnClear = this.container.querySelector('#btn-clear-cliente');
+        
+        this.currentIndex = -1;
+        this.searchTimeout = null;
+        this.clientesList = [];
+        
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // Búsqueda en tiempo real
+        this.searchInput.addEventListener('input', (e) => {
+            clearTimeout(this.searchTimeout);
+            const query = e.target.value.trim();
+            
+            if (query.length >= 2) {
+                this.searchTimeout = setTimeout(() => this.buscarClientes(query), 300);
+            } else {
+                this.hideDropdown();
+            }
+        });
+        
+        // Navegación con teclado
+        this.searchInput.addEventListener('keydown', (e) => {
+            if (this.dropdown.style.display === 'block') {
+                switch(e.key) {
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        this.navigateDropdown(1);
+                        break;
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        this.navigateDropdown(-1);
+                        break;
+                    case 'Enter':
+                        e.preventDefault();
+                        this.selectCurrentItem();
+                        break;
+                    case 'Escape':
+                        this.hideDropdown();
+                        break;
+                }
+            }
+        });
+        
+        // Ocultar dropdown al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (!this.container.contains(e.target)) {
+                this.hideDropdown();
+            }
+        });
+        
+        // Botón nuevo cliente
+        if (this.btnNuevo) {
+            this.btnNuevo.addEventListener('click', () => {
+                // Disparar evento para abrir modal de nuevo cliente
+                const event = new CustomEvent('abrirModalCliente');
+                document.dispatchEvent(event);
+            });
+        }
+        
+        // Botón limpiar selección
+        if (this.btnClear) {
+            this.btnClear.addEventListener('click', () => {
+                this.clearSelection();
+            });
+        }
+        
+        // Escuchar cuando se crea un nuevo cliente
+        document.addEventListener('clienteCreado', (e) => {
+            this.selectCliente(e.detail);
+        });
+    }
+    
+    async buscarClientes(query) {
+        try {
+            this.showLoading();
+            
+            const response = await fetch(`/clientes/buscar-ajax/?q=${encodeURIComponent(query)}`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            
+            const data = await response.json();
+            this.displayResults(data.clientes);
+            
+        } catch (error) {
+            console.error('Error buscando clientes:', error);
+            this.hideDropdown();
+        }
+    }
+    
+    showLoading() {
+        this.results.innerHTML = '<div class="search-loading"><i class="fas fa-spinner fa-spin"></i> Buscando...</div>';
+        this.dropdown.style.display = 'block';
+    }
+    
+    displayResults(clientes) {
+        this.clientesList = clientes;
+        this.currentIndex = -1;
+        
+        if (clientes.length === 0) {
+            this.results.innerHTML = '';
+            this.noResults.style.display = 'block';
+        } else {
+            this.noResults.style.display = 'none';
+            this.results.innerHTML = clientes.map((cliente, index) => `
+                <a class="dropdown-item cliente-item" href="#" data-index="${index}">
+                    <div class="cliente-info">
+                        <div class="cliente-datos">
+                            <strong>${cliente.nombre_completo}</strong><br>
+                            <small class="text-muted">
+                                CI: ${cliente.carnet_identidad} | Tel: ${cliente.telefono}
+                            </small>
+                        </div>
+                    </div>
+                </a>
+            `).join('');
+            
+            // Agregar event listeners a los elementos
+            this.results.querySelectorAll('.cliente-item').forEach((item, index) => {
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    this.selectCliente(clientes[index]);
+                });
+            });
+        }
+        
+        this.dropdown.style.display = 'block';
+    }
+    
+    navigateDropdown(direction) {
+        const items = this.results.querySelectorAll('.cliente-item');
+        if (items.length === 0) return;
+        
+        // Remover clase active actual
+        if (this.currentIndex >= 0) {
+            items[this.currentIndex].classList.remove('active');
+        }
+        
+        // Calcular nuevo índice
+        this.currentIndex += direction;
+        if (this.currentIndex < 0) {
+            this.currentIndex = items.length - 1;
+        } else if (this.currentIndex >= items.length) {
+            this.currentIndex = 0;
+        }
+        
+        // Agregar clase active
+        items[this.currentIndex].classList.add('active');
+        items[this.currentIndex].scrollIntoView({ block: 'nearest' });
+    }
+    
+    selectCurrentItem() {
+        if (this.currentIndex >= 0 && this.currentIndex < this.clientesList.length) {
+            this.selectCliente(this.clientesList[this.currentIndex]);
+        }
+    }
+    
+    selectCliente(cliente) {
+        // Mostrar información del cliente seleccionado
+        this.clienteNombre.textContent = cliente.nombre_completo;
+        this.clienteCarnet.textContent = cliente.carnet_identidad;
+        this.clienteTelefono.textContent = cliente.telefono;
+        this.clienteIdInput.value = cliente.id;
+        
+        // Mostrar/ocultar elementos
+        this.selectedDiv.style.display = 'block';
+        this.searchInput.style.display = 'none';
+        this.hideDropdown();
+        
+        // Callback
+        this.options.onClienteSelected(cliente);
+    }
+    
+    clearSelection() {
+        this.selectedDiv.style.display = 'none';
+        this.searchInput.style.display = 'block';
+        this.searchInput.value = '';
+        this.clienteIdInput.value = '';
+        this.hideDropdown();
+        
+        // Callback
+        this.options.onClienteCleared();
+    }
+    
+    hideDropdown() {
+        this.dropdown.style.display = 'none';
+        this.currentIndex = -1;
+    }
+    
+    // Métodos públicos
+    getSelectedCliente() {
+        return this.clienteIdInput.value ? {
+            id: this.clienteIdInput.value,
+            nombre_completo: this.clienteNombre.textContent,
+            carnet_identidad: this.clienteCarnet.textContent,
+            telefono: this.clienteTelefono.textContent
+        } : null;
+    }
+    
+    setCliente(cliente) {
+        if (cliente) {
+            this.selectCliente(cliente);
+        } else {
+            this.clearSelection();
+        }
+    }
+    
+    isValid() {
+        return !this.options.required || !!this.clienteIdInput.value;
+    }
+}
+
+// Función helper para inicializar el selector
+function initClienteSelector(containerId, options = {}) {
+    return new ClienteSelector(containerId, options);
+}
+</script>

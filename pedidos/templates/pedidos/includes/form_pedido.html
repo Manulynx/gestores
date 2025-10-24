@@ -1,0 +1,196 @@
+<form method="post" onsubmit="return confirmarPedido(event)">
+    {% csrf_token %}
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+    {% endif %}
+    {% for field in form %}
+        <div class="form-group mb-3">
+            <label class="text-white">{{ field.label }}</label>
+            {{ field.errors }}
+            {{ field }}
+        </div>
+    {% endfor %}
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-success mt-3">
+            <i class="fas fa-check me-2"></i>Confirmar Pedido
+        </button>
+        <button type="button" class="btn btn-danger mt-3" onclick="confirmarCancelar()">
+            <i class="fas fa-times me-2"></i>Cancelar Pedido
+        </button>
+    </div>
+</form>
+
+<script>
+function soloLetras(e) {
+    const key = e.keyCode || e.which;
+    const tecla = String.fromCharCode(key).toLowerCase();
+    const letras = " áéíóúabcdefghijklmnñopqrstuvwxyzÁÉÍÓÚABCDEFGHIJKLMNÑOPQRSTUVWXYZ";
+    
+    if (letras.indexOf(tecla) == -1) {
+        e.preventDefault();
+        Swal.fire({
+            icon: 'warning',
+            title: 'Carácter no válido',
+            text: 'Solo se permiten letras en este campo',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+        });
+        return false;
+    }
+}
+
+function soloNumeros(e) {
+    const key = e.keyCode || e.which;
+    const tecla = String.fromCharCode(key);
+    const numeros = "0123456789";
+    
+    if (numeros.indexOf(tecla) == -1) {
+        e.preventDefault();
+        Swal.fire({
+            icon: 'warning',
+            title: 'Carácter no válido',
+            text: 'Solo se permiten números en este campo',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 3000
+        });
+        return false;
+    }
+}
+
+// Función para buscar cliente por carnet
+document.addEventListener('DOMContentLoaded', function() {
+    const carnetInput = document.querySelector('input[name="carnet_identidad_cliente"]');
+    const nombreInput = document.querySelector('input[name="nombre_cliente"]');
+    const apellidosInput = document.querySelector('input[name="apellidos_cliente"]');
+    const telefonoInput = document.querySelector('input[name="telefono_cliente"]');
+    
+    let timeoutId;
+
+    carnetInput.addEventListener('input', function() {
+        clearTimeout(timeoutId);
+        
+        // Solo buscar si hay 11 dígitos
+        if (this.value.length === 11) {
+            timeoutId = setTimeout(() => {
+                fetch(`/pedidos/buscar-cliente/${this.value}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Autocompletar campos
+                            nombreInput.value = data.cliente.nombre;
+                            apellidosInput.value = data.cliente.apellidos;
+                            telefonoInput.value = data.cliente.telefono;
+                            
+                            // Deshabilitar campos
+                            nombreInput.readOnly = true;
+                            apellidosInput.readOnly = true;
+                            telefonoInput.readOnly = true;
+
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Cliente encontrado',
+                                text: 'Los datos han sido autoccompletados',
+                                toast: true,
+                                position: 'top-end',
+                                showConfirmButton: false,
+                                timer: 3000
+                            });
+                        } else {
+                            // Limpiar y habilitar campos si no se encuentra el cliente
+                            nombreInput.value = '';
+                            apellidosInput.value = '';
+                            telefonoInput.value = '';
+                            
+                            nombreInput.readOnly = false;
+                            apellidosInput.readOnly = false;
+                            telefonoInput.readOnly = false;
+
+                            if (data.message === 'Este cliente fue registrado por otro gestor') {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Cliente no disponible',
+                                    text: data.message,
+                                    toast: true,
+                                    position: 'top-end',
+                                    showConfirmButton: false,
+                                    timer: 3000
+                                });
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Limpiar y habilitar campos en caso de error
+                        nombreInput.value = '';
+                        apellidosInput.value = '';
+                        telefonoInput.value = '';
+                        
+                        nombreInput.readOnly = false;
+                        apellidosInput.readOnly = false;
+                        telefonoInput.readOnly = false;
+                    });
+            }, 300); // Pequeño delay para evitar muchas peticiones
+        } else {
+            // Si el carnet no tiene 11 dígitos, habilitar campos
+            nombreInput.readOnly = false;
+            apellidosInput.readOnly = false;
+            telefonoInput.readOnly = false;
+        }
+    });
+});
+
+function confirmarPedido(event) {
+    event.preventDefault();
+    
+    Swal.fire({
+        title: '¿Confirmar pedido?',
+        text: "¿Está seguro que desea realizar este pedido?",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, confirmar',
+        cancelButtonText: 'No, volver'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            event.target.submit();
+        }
+    });
+    
+    return false;
+}
+
+function confirmarCancelar() {
+    Swal.fire({
+        title: '¿Cancelar pedido?',
+        text: "Si cancela el pedido, perderá todos los datos ingresados y los artículos del carrito",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, cancelar',
+        cancelButtonText: 'No, volver'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Limpiar el carrito antes de redirigir
+            fetch('/carro/limpiar/', {
+                method: 'GET',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            }).then(() => {
+                window.location.href = "{% url 'inventario' %}";
+            });
+        }
+    });
+}
+</script>

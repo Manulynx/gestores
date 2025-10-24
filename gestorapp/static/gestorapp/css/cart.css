@@ -1,0 +1,24 @@
+.table-dark {
+    --bs-table-bg: rgba(33, 37, 41, 0.95);
+}
+
+.card {
+    backdrop-filter: blur(10px);
+}
+
+.btn-group .btn {
+    min-width: 40px;
+}
+
+.cart-action-btn:hover {
+    transform: scale(1.1);
+    transition: transform 0.2s;
+}
+
+.modal-content {
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.disabled {
+    opacity: 1 !important;
+}

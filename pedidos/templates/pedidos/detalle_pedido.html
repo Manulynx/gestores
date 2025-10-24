@@ -1,0 +1,329 @@
+{% extends "gestorapp/base.html" %}
+
+{% block title %}Detalles del Pedido{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    {% csrf_token %}
+    <h2 class="text-center text-white mb-4">
+        Detalles del Pedido #{{ pedido.id }} 
+        <span class="badge bg-secondary ms-2" style="font-size: 0.7em;">
+            Código: {{ pedido.codigo_unico }}
+        </span>
+    </h2>
+    <div class="d-flex flex-column flex-sm-row justify-content-end gap-2 mb-3">
+        {% if pedido.estado == 'efectuado' %}
+        <a href="{% url 'pedidos:generar_factura' pedido.id %}" class="btn btn-primary">
+            <i class="fas fa-file-pdf me-2"></i>Descargar Factura
+        </a>
+    {% else %}
+        <a href="{% url 'pedidos:generar_oferta' pedido.id %}" class="btn btn-primary">
+            <i class="fas fa-file-pdf me-2"></i>Descargar Oferta
+        </a>
+    {% endif %}
+        
+    {% if pedido.estado == 'pendiente' %}
+        {% if user.is_superuser %}
+
+            <button class="btn btn-success" 
+                    id="efectuarPedidoBtn" 
+                    data-pedido-id="{{ pedido.id }}"
+                    data-bs-toggle="modal" 
+                    data-bs-target="#confirmarEfectuarModal">
+                <i class="fas fa-check"></i> Confirmar Oferta
+            </button>
+        {% endif %}
+
+            <button class="btn btn-danger" 
+                    id="cancelarPedidoBtn" 
+                    data-pedido-id="{{ pedido.id }}"
+                    data-bs-toggle="modal" 
+                    data-bs-target="#confirmarCancelarModal">
+                <i class="fas fa-times"></i> Cancelar oferta
+            </button>
+            <a href="{% url 'pedidos:editar_detalle' pedido.id %}" class="btn btn-primary">
+                <i class="fas fa-edit"></i> Editar Artículos
+            </a>
+        {% elif pedido.estado == 'cancelado' %}
+            <button class="btn btn-warning" 
+                    id="reactivarPedidoBtn" 
+                    data-pedido-id="{{ pedido.id }}"
+                    data-bs-toggle="modal" 
+                    data-bs-target="#confirmarReactivarModal">
+                <i class="fas fa-redo"></i> Reactivar Oferta
+            </button>
+        {% endif %}
+    </div>
+
+    {% include "pedidos/includes/tabla_detalles.html" %}
+
+    
+    <div class="text-center mt-4">
+        <a href="{% url 'pedidos:lista_pedidos' %}" class="btn btn-secondary">Lista de pedidos</a>
+    </div>
+</div>
+
+<style>
+.table {
+    color: #fff !important;
+}
+
+.table th,
+.table td {
+    color: #fff !important;
+}
+
+.table-responsive {
+    background-color: rgba(33, 37, 41, 0.95);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+/* Para asegurar que los detalles también tengan el color correcto */
+.table .text-muted {
+    color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* Para mantener la consistencia con el tema oscuro */
+.table-dark {
+    --bs-table-bg: rgba(33, 37, 41, 0.95);
+    --bs-table-color: #fff;
+}
+
+/* Para mantener la legibilidad en hover */
+.table-hover tbody tr:hover {
+    color: #fff !important;
+    background-color: rgba(255, 255, 255, 0.075) !important;
+}
+
+.toast-dark {
+    background-color: rgba(33, 37, 41, 0.95) !important;
+    color: white !important;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toast-dark .toast-header {
+    background-color: rgba(33, 37, 41, 0.95) !important;
+    color: white !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toast-dark .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+</style>
+
+<!-- Modal Confirmar Efectuar -->
+<div class="modal fade" id="confirmarEfectuarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Efectuar Pedido</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea efectuar este pedido?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" onclick="efectuarPedido()">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Cancelar -->
+<div class="modal fade" id="confirmarCancelarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Cancelación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea cancelar este pedido?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                <button type="button" class="btn btn-danger" onclick="cancelarPedido()">Sí, cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar Reactivar -->
+<div class="modal fade" id="confirmarReactivarModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Reactivación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea reactivar este pedido?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">No</button>
+                <button type="button" class="btn btn-warning" onclick="reactivarPedido()">Sí, reactivar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar modales
+    const efectuarModal = new bootstrap.Modal(document.getElementById('confirmarEfectuarModal'));
+    const cancelarModal = new bootstrap.Modal(document.getElementById('confirmarCancelarModal'));
+    const reactivarModal = new bootstrap.Modal(document.getElementById('confirmarReactivarModal'));
+
+    // Función para efectuar pedido
+    window.efectuarPedido = function() {
+        const pedidoId = document.querySelector('#efectuarPedidoBtn').dataset.pedidoId;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch(`/pedidos/efectuar/${pedidoId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (response.status === 403) {
+                throw new Error('No tiene permisos para efectuar pedidos');
+            }
+            return response.json();
+        })
+        .then(data => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmarEfectuarModal'));
+            modal.hide();
+            showToast(data.message, data.status);
+            if (data.refresh) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmarEfectuarModal'));
+            modal.hide();
+            showToast(error.message || 'Error al efectuar el pedido', 'danger');
+        });
+    };
+
+    // Función para cancelar pedido
+    window.cancelarPedido = function() {
+        const pedidoId = document.querySelector('#cancelarPedidoBtn').dataset.pedidoId;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch(`/pedidos/cancelar/${pedidoId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            cancelarModal.hide();
+            showToast(data.message, data.status);
+            if (data.refresh) {
+                setTimeout(() => location.reload(), 1500);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            cancelarModal.hide();
+            showToast('Error al cancelar el pedido', 'danger');
+        });
+    };
+
+    // Función para reactivar pedido
+    window.reactivarPedido = function() {
+        const pedidoId = document.querySelector('#reactivarPedidoBtn').dataset.pedidoId;
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        fetch(`/pedidos/reactivar/${pedidoId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrfToken,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('confirmarReactivarModal'));
+            modal.hide();
+            showToast(data.message, data.status);
+            
+            if (data.redirect_url) {
+                setTimeout(() => window.location.href = data.redirect_url, 1500);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error al reactivar el pedido', 'danger');
+        });
+    };
+
+    // Función para mostrar notificaciones toast
+    function showToast(message, type = 'success') {
+        const toastContainer = document.querySelector('.toast-container');
+        const toastHtml = `
+            <div class="toast toast-dark" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <strong class="me-auto">Notificación</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            </div>
+        `;
+        
+        toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+        const toastElement = toastContainer.lastElementChild;
+        const toast = new bootstrap.Toast(toastElement, {
+            autohide: true,
+            delay: 3000
+        });
+        toast.show();
+        
+        toastElement.addEventListener('hidden.bs.toast', () => {
+            toastElement.remove();
+        });
+    }
+});
+</script>
+
+<script>
+window.reactivarPedido = function() {
+    const pedidoId = document.querySelector('#reactivarPedidoBtn').dataset.pedidoId;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    fetch(`/pedidos/reactivar/${pedidoId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const modal = bootstrap.Modal.getInstance(document.getElementById('confirmarReactivarModal'));
+        modal.hide();
+        showToast(data.message, data.status);
+        
+        if (data.redirect_url) {
+            setTimeout(() => window.location.href = data.redirect_url, 1500);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error al reactivar el pedido', 'danger');
+    });
+};
+</script>
+
+{% endblock %}

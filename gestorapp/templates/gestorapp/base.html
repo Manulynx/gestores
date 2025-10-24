@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#495057">
+    <link rel="manifest" href="{% static 'manifest.json' %}">
+    <link rel="apple-touch-icon" href="{% static 'img/icon-192x192.png' %}">
+    
+    <!-- Bootstrap CSS -->
+    <link href="{% static 'gestorapp/vendor/bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- jQuery primero -->
+    <script src="{% static 'gestorapp/vendor/jquery/jquery.min.js' %}"></script>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Lora:400,400i,700,700i" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- Styles -->
+    <link href="{% static 'gestorapp/css/gestion.css' %}" rel="stylesheet">
+    <link href="{% static 'gestorapp/css/cards.css' %}" rel="stylesheet">
+
+    <link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
+
+    <style>
+        html, body {
+            background-color: #343a40 !important;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            color: #fff;
+        }
+
+        #wrapper {
+            min-height: 100vh;
+            background-color: #343a40;
+            display: flex;
+            flex-direction: column;
+            padding-top: 80px;
+        }
+
+        .navbar {
+            background-color: #495057 !important;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            padding: 0.5rem 1rem;
+        }
+
+        .navbar-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .nav-item {
+            white-space: nowrap;
+        }
+
+        .nav-link {
+            padding: 0.5rem 1rem !important;
+            font-size: 0.9rem;
+            transition: color 0.2s ease;
+        }
+
+        .nav-link:hover {
+            color: #f8f9fa !important;
+        }
+
+        @media (min-width: 992px) {
+            .navbar-nav {
+                gap: 0.5rem;
+            }
+
+            .nav-item {
+                margin: 0 0.25rem;
+            }
+
+            .nav-link {
+                padding: 0.5rem 0.75rem !important;
+            }
+
+            .navbar .container {
+                max-width: 1400px;
+                padding: 0 2rem;
+            }
+        }
+
+        .navbar-logo {
+            height: 40px;
+            width: auto;
+            object-fit: contain;
+            border-radius: 4px;
+            transition: transform 0.2s ease;
+        }
+
+        .navbar-brand:hover .navbar-logo {
+            transform: scale(1.05);
+        }
+
+        .card {
+            background-color: #212529 !important;
+        }
+
+        /* Ajustes específicos para navbar en móvil */
+        @media (max-width: 991.98px) {
+            .navbar {
+                height: 60px;
+                padding: 0.5rem 1rem;
+                background-color: #343a40 !important;
+            }
+
+            .navbar-brand {
+                display: flex;
+                align-items: center;
+                padding: 0;
+            }
+
+            .navbar-logo {
+                height: 35px;
+                width: auto;
+                margin-right: 0.5rem;
+            }
+
+            .navbar-brand .text-expanded {
+                font-size: 0.9rem;
+                color: #ffffff;
+                font-weight: 600;
+                text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+                display: block !important;
+                margin-left: 0.5rem;
+            }
+
+            .navbar-toggler {
+                border: none;
+                padding: 0.25rem;
+                margin-left: 0.5rem;
+            }
+
+            .navbar-dark .navbar-toggler-icon {
+                opacity: 0.9;
+            }
+
+            .navbar-collapse {
+                background-color: #343a40;
+                padding: 1rem;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+        }
+
+        /* Ajustes para el contenido bajo el navbar */
+        .site-heading {
+            margin-top: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        /* Pull to refresh styles */
+        .pull-to-refresh {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(33, 37, 41, 0.95);
+            transform: translateY(-100%);
+            transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            z-index: 9999;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .pull-to-refresh.visible {
+            transform: translateY(0);
+        }
+
+        .pull-to-refresh-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.2);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .pull-to-refresh::after {
+            content: 'Desliza para actualizar';
+            position: absolute;
+            bottom: 12px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <div id="wrapper">
+        <h1 class="site-heading text-center text-white d-none d-lg-block">
+            <span class="site-heading-lower">Gestión de Pedidos</span>
+        </h1>
+
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+            <div class="container">
+                <a class="navbar-brand text-uppercase text-expanded font-weight-bold" href="{% url 'home' %}">
+                    <img src="{% static 'img/logo.png' %}" alt="Logo" class="navbar-logo me-2">
+                    <span class="d-lg-none">Gestión de Pedidos</span>
+                </a>
+                <button class="navbar-toggler"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#navbarResponsive"
+                        aria-controls="navbarResponsive"
+                        aria-expanded="false"
+                        aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarResponsive">
+                    <ul class="navbar-nav mx-auto">
+                        {% if user.is_authenticated %}
+                            {% if user.is_superuser %}
+                                <li class="nav-item px-lg-4">
+                                    <a class="nav-link text-uppercase text-expanded" href="{% url 'administrar_usuarios' %}">
+                                        <i class="fas fa-users-cog me-2"></i>
+                                        Gestores
+                                    </a>
+                                </li>
+                                <li class="nav-item {% if request.path == '/' %}active{% endif %} px-lg-4">
+                                    <a class="nav-link text-uppercase text-expanded" href="{% url 'home' %}">Inicio</a>
+                                </li>
+                                
+                                <li class="nav-item {% if request.path == '/editar-inventario' %}active{% endif %} px-lg-4">
+                                    <a class="nav-link text-uppercase text-expanded" href="{% url 'editar_inventario' %}">
+                                        <i class="fas fa-edit me-2"></i>Editar Inventario
+                                    </a>
+                                </li>
+                                <li class="nav-item {% if request.path == '/pedidos/lista' %}active{% endif %} px-lg-4">
+                                    <a class="nav-link text-uppercase text-expanded" href="{% url 'pedidos:lista_pedidos' %}">Pedidos</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="{% url 'analytics_dashboard' %}">
+                                        <i class="fas fa-chart-bar"></i> Materiales
+                                    </a>
+                                </li>
+                            {% else %}
+                                
+                                <li class="nav-item {% if request.path == '/' %}active{% endif %} px-lg-4">
+                                    <a class="nav-link text-uppercase text-expanded" href="{% url 'home' %}">Inicio</a>
+                                </li>
+                                <li class="nav-item {% if request.path == '/inventario' %}active{% endif %} px-lg-4">
+                                    <a class="nav-link text-uppercase text-expanded" href="{% url 'inventario' %}">Inventario</a>
+                                </li>
+                                <li class="nav-item {% if '/clientes/' in request.path %}active{% endif %} px-lg-4">
+                                    <a class="nav-link text-uppercase text-expanded" href="{% url 'clientes:lista_clientes' %}">
+                                        <i class="fas fa-users me-2"></i>Mis Clientes
+                                    </a>
+                                </li>
+                                <li class="nav-item {% if request.path == '/pedidos/lista' %}active{% endif %} px-lg-4">
+                                    <a class="nav-link text-uppercase text-expanded" href="{% url 'pedidos:lista_pedidos' %}">Pedidos</a>
+                                </li>
+                                <li class="nav-item {% if request.path == '/pedidos/estadisticas/' %}active{% endif %} px-lg-4">
+                                    <a class="nav-link text-uppercase text-expanded" href="{% url 'pedidos:estadisticas_usuario' %}">
+                                        <i class="fas fa-chart-line me-2"></i>Mis Estadísticas
+                                    </a>
+                                </li>
+
+                            {% endif %}
+
+                        {% else %}
+                            <li class="nav-item {% if request.path == '/inventario' %}active{% endif %} px-lg-4">
+                                <a class="nav-link text-uppercase text-expanded" href="{% url 'inventario' %}">Inventario</a>
+                            </li>
+                        {% endif %}
+
+                    </ul>
+
+                    <!-- User authentication section moved to navbar -->
+                    {% if user.is_authenticated %}
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="text-white">
+                                <i class="fas fa-user-circle me-2"></i>
+                                Bienvenido, {{ user.first_name|default:user.username }}
+                            </span>
+                            <a href="{% url 'cerrar_sesion' %}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-sign-out-alt me-2"></i>
+                                Cerrar sesión
+                            </a>
+                        </div>
+                    {% else %}
+                        <div class="d-flex">
+                            <a href="{% url 'Logear' %}" class="btn btn-outline-light btn-sm">
+                                <i class="fas fa-sign-in-alt me-2"></i>
+                                Iniciar sesión
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        {% block content %}
+        {% endblock %}
+
+        {% block scripts %}{% endblock %}
+    </div>
+    <div class="pull-to-refresh">
+        <div class="pull-to-refresh-spinner"></div>
+    </div>
+    <!-- Bootstrap JS al final del body -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Script para manejar el navbar -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Funcionalidad para el navbar
+            const navbarToggler = document.querySelector('.navbar-toggler');
+            const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+            const logo = document.querySelector('.navbar-brand');
+
+            // Agregar funcionalidad de actualización al logo
+            logo.addEventListener('click', function(e) {
+                e.preventDefault();
+                location.reload();
+            });
+
+            // Pull to refresh para móviles
+            let touchStart = 0;
+            let touchY = 0;
+            const pullToRefresh = document.querySelector('.pull-to-refresh');
+            let isPulling = false;
+            let threshold = 150;
+
+            document.addEventListener('touchstart', function(e) {
+                // Solo activar si estamos al inicio de la página
+                if (window.scrollY === 0) {
+                    touchStart = e.touches[0].clientY;
+                    isPulling = true;
+                }
+            });
+
+            document.addEventListener('touchmove', function(e) {
+                if (!isPulling) return;
+
+                touchY = e.touches[0].clientY;
+                const pullDistance = touchY - touchStart;
+
+                if (pullDistance > 0) {
+                    e.preventDefault();
+                    const progress = Math.min(pullDistance / threshold, 1);
+                    pullToRefresh.style.transform = `translateY(${pullDistance * 0.4}px)`;
+                    pullToRefresh.style.opacity = progress;
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchend', function() {
+                if (!isPulling) return;
+
+                const pullDistance = touchY - touchStart;
+                isPulling = false;
+
+                if (pullDistance > threshold) {
+                    // Mostrar animación completa
+                    pullToRefresh.style.transform = 'translateY(0)';
+                    pullToRefresh.style.transition = 'transform 0.3s ease-out';
+
+                    // Recargar después de mostrar la animación
+                    setTimeout(() => {
+                        location.reload();
+                    }, 500);
+                } else {
+                    // Ocultar si no llegó al umbral
+                    pullToRefresh.style.transform = 'translateY(-100%)';
+                    pullToRefresh.style.transition = 'transform 0.3s ease-out';
+                }
+
+                // Resetear estilos después de la transición
+                setTimeout(() => {
+                    pullToRefresh.style.transition = '';
+                }, 300);
+            });
+
+
+            // Cerrar el navbar cuando se hace clic en un enlace
+            navLinks.forEach(link => {
+                link.addEventListener('click', () => {
+                    const navbarCollapse = document.querySelector('#navbarResponsive');
+                    const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+                    if (bsCollapse) {
+                        bsCollapse.hide();
+                    }
+                });
+            });
+
+            // Manejar el click fuera del navbar para cerrarlo
+            document.addEventListener('click', (e) => {
+                const navbarCollapse = document.querySelector('#navbarResponsive');
+                if (!navbarToggler.contains(e.target) &&
+                    !navbarCollapse.contains(e.target) &&
+                    navbarCollapse.classList.contains('show')) {
+                    const bsCollapse = bootstrap.Collapse.getInstance(navbarCollapse);
+                    if (bsCollapse) {
+                        bsCollapse.hide();
+                    }
+                }
+            });
+        });
+    </script>
+
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+    </div>
+
+    <script>
+        // Registrar el Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+                navigator.serviceWorker.register("{% static 'service-worker.js' %}")
+                    .then(function(registration) {
+                        console.log('Service Worker registrado con éxito:', registration.scope);
+                    })
+                    .catch(function(error) {
+                        console.log('Error al registrar el Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+
+</html>

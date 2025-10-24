@@ -1,0 +1,87 @@
+{% extends 'gestorapp/base.html' %}
+{% load static %}
+
+{% block titulo %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user"></i> {{ title }}
+                    </h4>
+                </div>
+                
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Información Personal</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Nombre completo:</strong></td>
+                                    <td>{{ cliente.get_full_name }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Carnet de Identidad:</strong></td>
+                                    <td>{{ cliente.carnet_identidad }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Teléfono:</strong></td>
+                                    <td>{{ cliente.telefono }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <h6 class="text-muted">Información del Sistema</h6>
+                            <table class="table table-borderless">
+                                <tr>
+                                    <td><strong>Registrado por:</strong></td>
+                                    <td>{{ cliente.user.get_full_name|default:cliente.user.username }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Fecha de registro:</strong></td>
+                                    <td>{{ cliente.created_at|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Última actualización:</strong></td>
+                                    <td>{{ cliente.updated_at|date:"d/m/Y H:i" }}</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Volver a la lista
+                        </a>
+                        <div>
+                            <a href="{% url 'clientes:editar_cliente' cliente.id %}" class="btn btn-warning">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                            <a href="{% url 'clientes:eliminar_cliente' cliente.id %}" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.table-borderless td {
+    border: none;
+    padding: 0.5rem 0.75rem;
+}
+
+.table-borderless tr:first-child td {
+    padding-top: 0;
+}
+</style>
+{% endblock %}

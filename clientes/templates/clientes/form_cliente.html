@@ -1,0 +1,207 @@
+{% extends 'gestorapp/base.html' %}
+{% load static %}
+
+{% block titulo %}{{ title }}{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'gestorapp/css/clientes.css' %}">
+
+<div class="container-fluid fade-in">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card cliente-card cliente-form">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user{% if cliente %}edit{% else %}-plus{% endif %}"></i> 
+                        {{ title }}
+                    </h4>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST" id="cliente-form">
+                        {% csrf_token %}
+                        
+                        {% if form.non_field_errors %}
+                            <div class="alert alert-danger alert-cliente">
+                                {{ form.non_field_errors }}
+                            </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.nombre.id_for_label }}" class="form-label">
+                                        {{ form.nombre.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.nombre }}
+                                    {% if form.nombre.errors %}
+                                        <div class="invalid-feedback">
+                                            {{ form.nombre.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.apellidos.id_for_label }}" class="form-label">
+                                        {{ form.apellidos.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.apellidos }}
+                                    {% if form.apellidos.errors %}
+                                        <div class="invalid-feedback">
+                                            {{ form.apellidos.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.carnet_identidad.id_for_label }}" class="form-label">
+                                        {{ form.carnet_identidad.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.carnet_identidad }}
+                                    {% if form.carnet_identidad.errors %}
+                                        <div class="invalid-feedback">
+                                            {{ form.carnet_identidad.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                    <small class="form-text text-muted">11 caracteres exactos</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.telefono.id_for_label }}" class="form-label">
+                                        {{ form.telefono.label }} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.telefono }}
+                                    {% if form.telefono.errors %}
+                                        <div class="invalid-feedback">
+                                            {{ form.telefono.errors.0 }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        {% if cliente %}
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="alert alert-info alert-cliente">
+                                    <small>
+                                        <i class="fas fa-info-circle"></i>
+                                        <strong>Creado:</strong> {{ cliente.created_at|date:"d/m/Y H:i" }} |
+                                        <strong>Última actualización:</strong> {{ cliente.updated_at|date:"d/m/Y H:i" }}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <div class="form-group mt-4">
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Volver
+                                </a>
+                                <button type="submit" class="btn btn-primary" id="submit-btn">
+                                    <i class="fas fa-save"></i> {{ action }}
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('cliente-form');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    // Validación en tiempo real para el carnet de identidad
+    const carnetInput = document.getElementById('{{ form.carnet_identidad.id_for_label }}');
+    if (carnetInput) {
+        carnetInput.addEventListener('input', function() {
+            const value = this.value;
+            if (value.length > 11) {
+                this.value = value.slice(0, 11);
+            }
+            
+            // Solo números
+            this.value = this.value.replace(/[^0-9]/g, '');
+            
+            // Validación visual
+            if (this.value.length === 11) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                if (this.value.length > 0) {
+                    this.classList.add('is-invalid');
+                }
+            }
+        });
+    }
+    
+    // Validación para teléfono - solo números y algunos caracteres especiales
+    const telefonoInput = document.getElementById('{{ form.telefono.id_for_label }}');
+    if (telefonoInput) {
+        telefonoInput.addEventListener('input', function() {
+            // Permitir números, espacios, guiones y paréntesis
+            this.value = this.value.replace(/[^0-9\s\-\(\)\+]/g, '');
+        });
+    }
+    
+    // Validación para nombres - solo letras y espacios
+    const nombreInput = document.getElementById('{{ form.nombre.id_for_label }}');
+    const apellidosInput = document.getElementById('{{ form.apellidos.id_for_label }}');
+    
+    [nombreInput, apellidosInput].forEach(input => {
+        if (input) {
+            input.addEventListener('input', function() {
+                // Permitir solo letras y espacios
+                this.value = this.value.replace(/[^a-zA-ZáéíóúÁÉÍÓÚñÑ\s]/g, '');
+                
+                // Capitalizar primera letra de cada palabra
+                this.value = this.value.replace(/\b\w/g, l => l.toUpperCase());
+            });
+        }
+    });
+    
+    // Loading state en el formulario
+    form.addEventListener('submit', function() {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Guardando...';
+        form.classList.add('loading');
+    });
+    
+    // Validación adicional del formulario
+    form.addEventListener('submit', function(e) {
+        let isValid = true;
+        const requiredFields = form.querySelectorAll('input[required]');
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> {{ action }}';
+            form.classList.remove('loading');
+        }
+    });
+});
+</script>
+{% endblock %}

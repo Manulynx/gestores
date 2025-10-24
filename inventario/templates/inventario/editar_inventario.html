@@ -1,0 +1,1144 @@
+{% extends "gestorapp/base.html" %}
+{% load static %}
+
+{% block content %}
+<!-- Agregar SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="container mt-4">
+    <!-- Botón flotante para agregar nuevo material -->
+    {% include "inventario/admin/add_material_button.html" %}
+    {% include "inventario/includes/categoria_filter.html" %}
+
+    <div class="row">
+        <div class="col-12">
+            <div class="card-container">
+                {% for material in materiales %}
+                    <div class="col mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <!-- Agregar la cinta de oferta -->
+                            {% if material.en_oferta and material.precio_oferta %}
+                            <div class="ribbon-wrapper">
+                                <div class="ribbon">OFERTA</div>
+                            </div>
+                            {% endif %}
+                            <div class="card-img-container">
+                                {% if material.imagenes.all %}
+                                    <div id="carousel{{ material.id }}" class="carousel slide" data-bs-ride="carousel">
+                                        <div class="carousel-inner">
+                                            <div class="carousel-item active">
+                                                {% if material.imagen %}
+                                                    <img src="{{ material.imagen.url }}" 
+                                                         class="card-img-top" 
+                                                         alt="{{ material.nombre }}"
+                                                         loading="lazy">
+                                                {% else %}
+                                                    <img src="{% static 'img/no-image.png' %}" class="card-img-top" alt="Sin imagen" loading="lazy">
+                                                {% endif %}
+                                            </div>
+                                            {% for img in material.imagenes.all %}
+                                                <div class="carousel-item">
+                                                    {% if img.imagen %}
+                                                        <img src="{{ img.imagen.url }}" 
+                                                             class="card-img-top" 
+                                                             alt="{{ material.nombre }}"
+                                                             loading="lazy">
+                                                    {% else %}
+                                                        <img src="{% static 'img/no-image.png' %}" class="card-img-top" alt="Sin imagen" loading="lazy">
+                                                    {% endif %}
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        <button class="carousel-control-prev" type="button" data-bs-target="#carousel{{ material.id }}" data-bs-slide="prev">
+                                            <span class="carousel-control-prev-icon"></span>
+                                        </button>
+                                        <button class="carousel-control-next" type="button" data-bs-target="#carousel{{ material.id }}" data-bs-slide="next">
+                                            <span class="carousel-control-next-icon"></span>
+                                        </button>
+                                    </div>
+                                {% else %}
+                                    {% if material.imagen %}
+                                        <img src="{{ material.imagen.url }}" 
+                                             class="card-img-top" 
+                                             alt="{{ material.nombre }}"
+                                             loading="lazy">
+                                    {% else %}
+                                        <img src="{% static 'img/no-image.png' %}" class="card-img-top" alt="Sin imagen" loading="lazy">
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+                            <div class="card-body text-center">
+                                <h5 class="card-title">{{ material.nombre }}</h5>
+                                {% if material.en_oferta and material.precio_oferta %}
+                                    <p class="card-text mb-0">
+                                        <span class="text-muted text-decoration-line-through">{{ material.precio }} USD</span>
+                                        <span class="badge bg-danger">-{{ material.descuento_porcentaje|floatformat:0 }}%</span>
+                                    </p>
+                                    <p class="card-text fw-bold text-danger mb-3">{{ material.precio_oferta }} USD</p>
+                                {% else %}
+                                    <p class="card-text fw-bold mb-3">{{ material.precio }} USD</p>
+                                {% endif %}
+                                <p class="card-text">Cantidad en Stock: {{ material.cantidad }}</p>
+                                <p class="card-text">Comisión: ${{ material.comision }}</p>
+                                <p class="card-text">Código: {{ material.codigo }}</p>
+                                <p class="card-text">Categoría: {{ material.categoria.nombre }}</p>
+                                <p class="card-text text-warning" style="cursor: pointer;" onclick="mostrarPedidosPendientes('{{ material.id }}')">
+                                    <i class="fas fa-clock me-1"></i>
+                                    En Pedidos Pendientes: {{ material.get_cantidad_en_pedidos }}
+                                    <i class="fas fa-chevron-down ms-1"></i>
+                                </p>
+                                
+                                {% if material.ficha_tecnica %}
+                                    <a href="{{ material.ficha_tecnica.url }}" class="btn btn-info btn-sm mb-2" download>
+                                        <i class="fas fa-file-pdf me-2"></i>Descargar Ficha Técnica
+                                    </a>
+                                {% endif %}
+                            </div>
+                            <div class="card-footer text-center border-0 d-flex gap-2">
+                                <button type="button" 
+                                        class="btn btn-primary flex-grow-1"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#editarMaterial{{ material.id }}">
+                                    <i class="fas fa-edit me-2"></i>Editar
+                                </button>
+                                
+                                <!-- Botón de destacado -->
+                                <button type="button"
+                                        class="btn {% if material.destacado %}btn-warning{% else %}btn-outline-warning{% endif %}"
+                                        onclick="toggleDestacado('{{ material.id }}', this)"
+                                        title="{% if material.destacado %}Quitar de destacados{% else %}Marcar como destacado{% endif %}">
+                                    <i class="fas fa-star"></i>
+                                </button>
+                                
+                                <!-- Nuevo botón de oferta -->
+                                <button type="button"
+                                class="btn {% if material.en_oferta %}btn-danger{% else %}btn-outline-danger{% endif %}"
+                                onclick="toggleOferta('{{ material.id }}', this)"
+                                title="{% if material.en_oferta %}Quitar de oferta{% else %}Poner en oferta{% endif %}">
+                                <i class="fas fa-fire"></i>
+                                </button>
+
+                                <!-- Nuevo botón de activo/inactivo -->
+                                <button type="button"
+                                        class="btn {% if material.activo %}btn-success{% else %}btn-outline-success{% endif %}"
+                                        onclick="toggleActivo('{{ material.id }}', this)"
+                                        title="{% if material.activo %}Desactivar material{% else %}Activar material{% endif %}">
+                                    <i class="fas fa-power-off"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Modal para editar material -->
+                    {% include "inventario/admin/edit_material_modal.html" %}
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card {
+    width: 100%;
+    margin: 0; /* Removido el margen */
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    min-height: 350px;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-img-container {
+    position: relative;
+    height: 180px;
+    overflow: hidden;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+}
+
+.card-img-top {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+    object-position: center;
+}
+
+.card-body {
+    padding: 1rem;
+    flex: 1;
+}
+
+.card-title {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+}
+
+.card-text {
+    font-size: 0.8rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.2;
+}
+
+/* Grid container para las cartas */
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Cambiado de auto-fill a auto-fit */
+    gap: 1rem;
+    padding: 1rem;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Media query para móviles */
+@media (max-width: 767px) {
+    .container {
+        padding: 0.5rem;
+        max-width: 100%;
+    }
+
+    .card-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+        padding: 0.5rem !important;
+    }
+
+    .card {
+        min-height: unset;
+    }
+
+    .btn-info.btn-sm {
+        padding: 0.15rem 0.3rem;
+        font-size: 0.6rem;
+    }
+
+    .btn-info.btn-sm i {
+        font-size: 0.6rem;
+        margin-right: 0.2rem !important;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 375px) {
+    .container {
+        padding: 0.25rem;
+    }
+
+    .card-container {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.25rem !important;
+        padding: 0.15rem !important;
+    }
+
+    .card-footer .btn {
+        padding: 0.1rem 0.25rem;
+        font-size: 0.6rem;
+    }
+}
+
+.btn-sm {
+    padding: 0.4rem 0.8rem;
+    font-size: 1rem;
+}
+
+.fas {
+    font-size: 0.8rem;
+}
+
+/* Mantener los estilos del modal de pedidos pendientes */
+.list-group-item {
+    transition: background-color 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: rgba(255,255,255,0.1) !important;
+}
+
+.text-warning[onclick] {
+    transition: color 0.2s ease;
+}
+
+.text-warning[onclick]:hover {
+    color: #ffc107 !important;
+    text-decoration: underline;
+}
+
+.btn-warning .fas.fa-star {
+    color: #000;
+}
+
+.btn-outline-warning .fas.fa-star {
+    color: #ffc107;
+}
+
+.btn-outline-warning:hover .fas.fa-star {
+    color: #000;
+}
+
+/* Estilos para el carrusel */
+.carousel-control-prev,
+.carousel-control-next {
+    width: 40px;
+    height: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    opacity: 0;
+    transition: all 0.3s ease;
+    margin: 0 10px;
+}
+
+.carousel-control-prev {
+    left: 5px;
+}
+
+.carousel-control-next {
+    right: 5px;
+}
+
+.card:hover .carousel-control-prev,
+.card:hover .carousel-control-next {
+    opacity: 0.8;
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.8);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+    width: 20px;
+    height: 20px;
+    background-color: transparent;
+    padding: 0;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.3));
+}
+
+.carousel .card-img-top {
+    height: 200px;
+    object-fit: contain;
+    padding: 10px;
+    background-color: white;
+    transition: transform 0.3s ease;
+}
+
+.carousel-item.active .card-img-top {
+    transform: scale(1.02);
+}
+
+.carousel-item {
+    transition: transform 0.2s ease-in-out !important;
+}
+
+.carousel.slide {
+    transition-duration: 200ms;
+}
+/* Agregar a la sección de estilos existente */
+.btn-danger .fas.fa-fire {
+    color: #fff;
+}
+
+.btn-outline-danger .fas.fa-fire {
+    color: #dc3545;
+}
+
+.btn-outline-danger:hover .fas.fa-fire {
+    color: #fff;
+}
+/* Agregar después de los estilos existentes en la sección <style> */
+/* Estilos para la cinta de oferta */
+.card {
+    overflow: hidden;
+    position: relative;
+}
+
+.ribbon-wrapper {
+    width: 85px;
+    height: 88px;
+    overflow: hidden;
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    z-index: 1;
+}
+
+.ribbon {
+    font-size: 12px;
+    font-weight: bold;
+    color: #FFF;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 20px;
+    transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+    width: 120px;
+    display: block;
+    background: #dc3545;
+    background: linear-gradient(#dc3545 0%, #dc3545 100%);
+    box-shadow: 0 3px 10px -5px rgba(0, 0, 0, 1);
+    position: absolute;
+    top: 19px;
+    left: -31px;
+}
+
+.ribbon:before, 
+.ribbon:after {
+    content: "";
+    border-top: 3px solid #dc3545;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    position: absolute;
+    bottom: -3px;
+}
+
+.ribbon:before {
+    left: 0;
+}
+
+.ribbon:after {
+    right: 0;
+}
+
+.text-decoration-line-through {
+    text-decoration: line-through;
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+.badge.bg-danger {
+    font-size: 0.8em;
+    padding: 0.3em 0.5em;
+    margin-left: 0.5em;
+    vertical-align: middle;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-size: 1.2em;
+}
+
+/* Ajustes para móvil */
+@media (max-width: 767px) {
+    .ribbon {
+        font-size: 10px;
+        line-height: 16px;
+        width: 100px;
+    }
+
+    .ribbon-wrapper {
+        width: 65px;
+        height: 68px;
+    }
+
+    .ribbon {
+        top: 15px;
+        left: -26px;
+    }
+}
+
+/* Actualizar los estilos existentes del .card-container y añadir media queries */
+.card-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    width: 100%;
+    margin: 0 auto;
+}
+
+/* Media queries para móviles */
+@media (max-width: 767px) {
+    .container {
+        padding: 0.5rem;
+        max-width: 100%;
+    }
+
+    .card-container {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.5rem !important;
+        padding: 0.5rem !important;
+    }
+
+    .card {
+        min-height: unset;
+    }
+
+    .btn-info.btn-sm {
+        padding: 0.15rem 0.3rem;
+        font-size: 0.6rem;
+    }
+
+    .btn-info.btn-sm i {
+        font-size: 0.6rem;
+        margin-right: 0.2rem !important;
+    }
+}
+
+/* Extra small devices */
+@media (max-width: 375px) {
+    .container {
+        padding: 0.25rem;
+    }
+
+    .card-container {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.25rem !important;
+        padding: 0.15rem !important;
+    }
+
+    .card-footer .btn {
+        padding: 0.1rem 0.25rem;
+        font-size: 0.6rem;
+    }
+}
+
+/* Estilos para los selects en modales */
+.modal-content .form-control {
+    background-color: #2b3035 !important;
+    border-color: #495057;
+    color: #fff !important;
+}
+
+.modal-content .form-control:focus {
+    background-color: #2b3035 !important;
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.modal-content .form-control option {
+    background-color: #2b3035;
+    color: #fff;
+}
+
+/* Estilos para el modal de pedidos pendientes */
+#pedidosPendientesModal .modal-dialog {
+    max-width: 500px;
+    margin: 1.75rem auto;
+}
+
+#pedidosPendientesModal .modal-content {
+    max-height: 80vh;
+}
+
+#pedidosPendientesModal .modal-body {
+    max-height: calc(80vh - 120px);
+    overflow-y: auto;
+}
+
+#pedidosPendientesModal .list-group-item {
+    padding: 0.75rem;
+}
+
+/* Ajustes responsivos para móviles */
+@media (max-width: 576px) {
+    #pedidosPendientesModal .modal-dialog {
+        max-width: 95%;
+        margin: 0.5rem auto;
+    }
+}
+</style>
+
+<script>
+// Reemplazar la función showToast con showAlert usando SweetAlert2
+function showAlert(message, type = 'success') {
+    Swal.fire({
+        title: type.charAt(0).toUpperCase() + type.slice(1),
+        text: message,
+        icon: type,
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+    });
+}
+
+// Modificar los event listeners para usar SweetAlert2
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar modales
+    const eliminarModal = new bootstrap.Modal(document.getElementById('eliminarMaterialModal'));
+    let materialIdToDelete = null;
+
+    eliminarModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        materialIdToDelete = button.getAttribute('data-material-id');
+    });
+
+    document.getElementById('confirmarEliminar').addEventListener('click', function() {
+        if (materialIdToDelete) {
+            fetch(`/inventario/eliminar-material/${materialIdToDelete}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showAlert(data.message, 'success');
+                    location.reload();
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error al eliminar el material', 'error');
+            });
+        }
+    });
+
+    var carousels = document.querySelectorAll('.carousel');
+    carousels.forEach(function(carousel) {
+        new bootstrap.Carousel(carousel, {
+            interval: false,
+            keyboard: true,
+            touch: false,
+            pause: false,
+            wrap: true
+        });
+    });
+});
+
+function eliminarImagen(imagenId) {
+    if (confirm('¿Está seguro que desea eliminar esta imagen?')) {
+        fetch(`/inventario/eliminar-imagen/${imagenId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                location.reload();
+            } else {
+                alert('Error al eliminar la imagen');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error al eliminar la imagen');
+        });
+    }
+}
+
+function eliminarMaterial(materialId) {
+    Swal.fire({
+        title: '¿Está seguro?',
+        text: 'Esta acción eliminará el material. Esta acción no se puede deshacer.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/inventario/eliminar-material/${materialId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showAlert(data.message, 'success');
+                    location.reload();
+                } else {
+                    showAlert(data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error al eliminar el material', 'error');
+            });
+        }
+    });
+}
+
+function toggleOferta(materialId, button) {
+    fetch(`/inventario/toggle-oferta/${materialId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Actualizar el botón
+            if (data.en_oferta) {
+                button.classList.remove('btn-outline-danger');
+                button.classList.add('btn-danger');
+                button.title = 'Quitar de oferta';
+            } else {
+                button.classList.remove('btn-danger');
+                button.classList.add('btn-outline-danger');
+                button.title = 'Poner en oferta';
+            }
+            
+            showAlert(data.en_oferta ? 'Material puesto en oferta' : 'Material quitado de oferta', 'success');
+            
+            // Recargar la página para mostrar los cambios
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showAlert(data.message || 'Error al cambiar estado de oferta', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error al cambiar estado de oferta', 'error');
+    });
+}
+
+function toggleDestacado(materialId, button) {
+    fetch(`/inventario/toggle-destacado/${materialId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Actualizar el botón
+            if (data.destacado) {
+                button.classList.remove('btn-outline-warning');
+                button.classList.add('btn-warning');
+                button.title = 'Quitar de destacados';
+            } else {
+                button.classList.remove('btn-warning');
+                button.classList.add('btn-outline-warning');
+                button.title = 'Marcar como destacado';
+            }
+            showAlert(data.destacado ? 'Material marcado como destacado' : 'Material quitado de destacados', 'success');
+            
+            // Recargar la página para reordenar los materiales
+            location.reload();
+        } else {
+            showAlert('Error al cambiar estado destacado', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error al cambiar estado destacado', 'error');
+    });
+}
+
+function toggleActivo(materialId, button) {
+    fetch(`/inventario/toggle-activo/${materialId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Actualizar el botón
+            if (data.activo) {
+                button.classList.remove('btn-outline-success');
+                button.classList.add('btn-success');
+                button.title = 'Desactivar material';
+            } else {
+                button.classList.remove('btn-success');
+                button.classList.add('btn-outline-success');
+                button.title = 'Activar material';
+            }
+            showAlert(data.activo ? 'Material activado' : 'Material desactivado', 'success');
+        } else {
+            showAlert('Error al cambiar estado del material', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('Error al cambiar estado del material', 'error');
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchButton = document.getElementById('searchButton');
+    let searchTimeout;
+
+    function performSearch() {
+        const searchTerm = searchInput.value;
+        const categoria = document.querySelector('select[name="categoria"]').value;
+        
+        fetch(`${window.location.pathname}?search=${encodeURIComponent(searchTerm)}&categoria=${categoria}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newCards = doc.querySelector('.card-container');
+            document.querySelector('.card-container').innerHTML = newCards.innerHTML;
+            
+            // Actualizar URL sin recargar la página
+            const url = new URL(window.location);
+            url.searchParams.set('search', searchTerm);
+            if (categoria) url.searchParams.set('categoria', categoria);
+            window.history.pushState({}, '', url);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error al realizar la búsqueda', 'error');
+        });
+    }
+
+    // Evento para búsqueda al escribir (con debounce)
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(performSearch, 500);
+    });
+
+    // Evento para búsqueda al hacer click en el botón
+    searchButton.addEventListener('click', performSearch);
+
+    // Evento para búsqueda al presionar Enter
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            performSearch();
+        }
+    });
+});
+
+// Funciones para gestionar categorías
+document.addEventListener('DOMContentLoaded', function() {
+    // Form handlers
+    const formNuevaCategoria = document.getElementById('formNuevaCategoria');
+    const formEditarCategoria = document.getElementById('formEditarCategoria');
+    const formEliminarCategoria = document.getElementById('formEliminarCategoria');
+    
+    // Evento para crear categoría
+    formNuevaCategoria.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        fetch('{% url "crear_categoria" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: new FormData(this)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showAlert('Categoría creada exitosamente', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('nuevaCategoriaModal')).hide();
+                location.reload();
+            } else {
+                showAlert(data.message || 'Error al crear la categoría', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error al crear la categoría', 'error');
+        });
+    });
+    
+    // Evento para editar categoría
+    formEditarCategoria.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const categoriaId = this.querySelector('[name="categoria_id"]').value;
+        
+        fetch(`/inventario/editar-categoria/${categoriaId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: new FormData(this)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showAlert('Categoría actualizada exitosamente', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('editarCategoriaModal')).hide();
+                location.reload();
+            } else {
+                showAlert(data.message || 'Error al actualizar la categoría', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error al actualizar la categoría', 'error');
+        });
+    });
+    
+    // Evento para eliminar categoría
+    formEliminarCategoria.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const categoriaId = this.querySelector('[name="categoria_id"]').value;
+        
+        fetch(`/inventario/eliminar-categoria/${categoriaId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: new FormData(this)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'warning' && data.requires_confirmation) {
+                Swal.fire({
+                    title: '¡Atención!',
+                    text: `${data.message}. ¿Desea eliminar la categoría y todos los materiales asociados?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, eliminar todo',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Enviar solicitud con confirmación
+                        const formData = new FormData(this);
+                        formData.append('confirm_delete', 'true');
+                        
+                        fetch(`/inventario/eliminar-categoria/${categoriaId}/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                showAlert(data.message, 'success');
+                                bootstrap.Modal.getInstance(document.getElementById('eliminarCategoriaModal')).hide();
+                                location.reload();
+                            } else {
+                                showAlert(data.message || 'Error al eliminar la categoría', 'error');
+                            }
+                        });
+                    }
+                });
+            } else if (data.status === 'success') {
+                showAlert('Categoría eliminada exitosamente', 'success');
+                bootstrap.Modal.getInstance(document.getElementById('eliminarCategoriaModal')).hide();
+                location.reload();
+            } else {
+                showAlert(data.message || 'Error al eliminar la categoría', 'error');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('Error al eliminar la categoría', 'error');
+        });
+    });
+});
+
+// Actualizar el campo de nombre en el modal de editar cuando se selecciona una categoría
+const selectCategoriaEditar = document.querySelector('#editarCategoriaModal [name="categoria_id"]');
+if (selectCategoriaEditar) {
+    selectCategoriaEditar.addEventListener('change', function() {
+        const nombreCategoria = this.options[this.selectedIndex].text;
+        document.querySelector('#editarCategoriaModal [name="nombre"]').value = nombreCategoria;
+    });
+}
+
+let pedidosPendientesModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar el modal de pedidos pendientes
+    const modalEl = document.getElementById('pedidosPendientesModal');
+    if (modalEl) {
+        pedidosPendientesModal = new bootstrap.Modal(modalEl);
+    }
+});
+
+function mostrarPedidosPendientes(materialId) {
+    if (!pedidosPendientesModal) {
+        console.error('Modal no inicializado');
+        return;
+    }
+
+    const listaPedidos = document.getElementById('listaPedidosPendientes');
+    if (!listaPedidos) {
+        console.error('Lista de pedidos no encontrada');
+        return;
+    }
+
+    listaPedidos.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Cargando...</span></div></div>';
+    
+    pedidosPendientesModal.show();
+
+    fetch(`/inventario/pedidos-pendientes/${materialId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.pedidos && data.pedidos.length > 0) {
+                let html = '<div class="list-group bg-dark">';
+                data.pedidos.forEach(pedido => {
+                    html += `
+                        <div class="list-group-item bg-dark text-white border-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Pedido #${pedido.id}</h6>
+                                    <p class="mb-1 text-muted">Gestor: ${pedido.gestor}</p>
+                                    <small>Cantidad: ${pedido.cantidad}</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <small class="text-muted me-2">${pedido.fecha}</small>
+                                    {% if user.is_superuser %}
+                                    <a href="/pedidos/detalle/${pedido.id}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye me-1"></i>Ver
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                listaPedidos.innerHTML = html;
+            } else {
+                listaPedidos.innerHTML = '<p class="text-center">No hay pedidos pendientes para este material.</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            listaPedidos.innerHTML = '<p class="text-center text-danger">Error al cargar los pedidos pendientes.</p>';
+        });
+}
+
+</script>
+
+<!-- Modal para crear nuevo material -->
+{% include "inventario/admin/create_material_modal.html" %}
+<!-- Modal Pedidos Pendientes -->
+<div class="modal fade" id="pedidosPendientesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Pedidos Pendientes</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="listaPedidosPendientes">
+                    <!-- Aquí se cargarán los pedidos dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para crear nueva categoría -->
+<div class="modal fade" id="nuevaCategoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Crear Nueva Categoría</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNuevaCategoria" method="POST" action="{% url 'crear_categoria' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Nombre de la Categoría</label>
+                        <input type="text" name="nombre" class="form-control bg-dark text-white" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-success">Crear</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para editar categoría -->
+<div class="modal fade" id="editarCategoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Editar Categoría</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditarCategoria">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Categoría</label>
+                        <select name="categoria_id" class="form-control" required>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Nuevo Nombre</label>
+                        <input type="text" name="nombre" class="form-control" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para eliminar categoría -->
+<div class="modal fade" id="eliminarCategoriaModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Eliminar Categoría</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEliminarCategoria">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Seleccionar Categoría</label>
+                        <select name="categoria_id" class="form-control" required>
+                            {% for categoria in categorias %}
+                                <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <p class="text-danger">¿Está seguro que desea eliminar esta categoría? Esta acción no se puede deshacer.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <!-- Los toasts se agregarán aquí dinámicamente -->
+</div>
+
+{% endblock %}

@@ -1,0 +1,531 @@
+{% load static %}
+<div class="col mb-4">
+    <div class="card h-100 shadow-sm d-flex flex-column">
+        <!-- Agregar la cinta de oferta y estrella destacado -->
+        {% if material.en_oferta and material.precio_oferta %}
+        <div class="ribbon-wrapper">
+            <div class="ribbon">OFERTA</div>
+        </div>
+        {% endif %}
+        {% if material.destacado %}
+        <div class="featured-star">
+            <i class="fas fa-star"></i>
+        </div>
+        {% endif %}
+        <div class="card-img-container" style="cursor: pointer;" onclick="mostrarImagenesModal('{{ material.id }}')">
+            {% if material.imagen and material.imagen.url %}
+    <img src="{{ material.imagen.url }}" class="card-img-top" alt="{{ material.nombre }}" loading="lazy">
+{% else %}
+    <img src="{% static 'img/no-image.png' %}" class="card-img-top" alt="Sin imagen" loading="lazy">
+{% endif %}
+        </div>
+        <div class="card-body text-center">
+            <h5 class="card-title">{{ material.nombre }}</h5>
+            {% if material.en_oferta and material.precio_oferta %}
+                <p class="card-text mb-0">
+                    <span class="text-muted text-decoration-line-through">{{ material.precio }} USD</span>
+                    <span class="badge bg-danger">-{{ material.descuento_porcentaje|floatformat:0 }}%</span>
+                </p>
+                <p class="card-text fw-bold text-danger mb-3">{{ material.precio_oferta }} USD</p>
+            {% else %}
+                <p class="card-text fw-bold mb-3">{{ material.precio }} USD</p>
+            {% endif %}
+            <p class="card-text">Cantidad en Stock: {{ material.cantidad }}</p>
+            {% if material.codigo %}
+                <p class="card-text">Código: {{ material.codigo }}</p>
+            {% endif %}
+            <p class="card-text">Categoría: {{ material.categoria.nombre }}</p>
+
+            {% if user.is_authenticated %}
+            <p class="card-text text-warning">
+                <i class="fas fa-clock me-1"></i>
+                En Pedidos Pendientes: {{ material.get_cantidad_en_pedidos }}
+            </p>
+            {% if material.ficha_tecnica %}
+                <a href="{{ material.ficha_tecnica.url }}" class="btn btn-info btn-sm mb-2" download>
+                    <i class="fas fa-file-pdf me-2"></i>Descargar Ficha Técnica
+                </a>
+            {% endif %}
+            {% endif %}
+        </div>
+        {% if user.is_authenticated %}
+        <div class="card-footer text-center p-2 mt-auto">
+            <div class="input-group">
+                <input type="number"
+                       class="form-control form-control-sm"
+                       id="cantidad-{{material.id}}"
+                       value="1"
+                       min="1"
+                       max="{{material.cantidad}}"
+                       aria-label="Cantidad">
+                <button type="button"
+                        class="btn btn-success btn-sm add-to-cart-btn"
+                        data-material-id="{{ material.id }}"
+                        onclick="agregarAlCarro(this)">
+                    <i class="fas fa-cart-plus me-1"></i>Agregar
+                </button>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Pedidos Pendientes -->
+<div class="modal fade" id="pedidosPendientesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header">
+                <h5 class="modal-title">Pedidos Pendientes</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="listaPedidosPendientes">
+                    <!-- Aquí se cargarán los pedidos dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Update the Modal for images with better styling -->
+<div class="modal fade" id="imagenesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-dark text-white">
+            <div class="modal-header border-0">
+                <h5 class="modal-title"></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="imagenesCarousel" class="carousel slide">
+                    <div class="carousel-inner">
+                        <!-- Images will be loaded here dynamically -->
+                    </div>
+                    <button class="carousel-control-prev" type="button" data-bs-target="#imagenesCarousel" data-bs-slide="prev">
+                        <span class="carousel-control-prev-icon"></span>
+                    </button>
+                    <button class="carousel-control-next" type="button" data-bs-target="#imagenesCarousel" data-bs-slide="next">
+                        <span class="carousel-control-next-icon"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function agregarAlCarro(button) {
+    const materialId = button.dataset.materialId;
+    const cantidadInput = document.getElementById(`cantidad-${materialId}`);
+    const cantidad = parseInt(cantidadInput.value);
+
+    if (isNaN(cantidad) || cantidad < 1) {
+        showToast('Por favor ingrese una cantidad válida', 'danger');
+        return;
+    }
+
+    fetch(`/carro/actualizar/${materialId}/${cantidad}/`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Actualizar el widget del carrito
+            updateCartModal();
+
+            // Actualizar el contador del carrito
+            const cartBadge = document.querySelector('#cartButton .badge');
+            if (cartBadge) {
+                cartBadge.textContent = data.cart_count;
+            }
+
+            showToast('Material agregado al carrito', 'success');
+            cantidadInput.value = 1;
+        } else {
+            showToast(data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('Error al agregar al carrito', 'danger');
+    });
+}
+
+// Función para mostrar notificaciones toast
+function showToast(message, type = 'success') {
+    Toastify({
+        text: message,
+        duration: 3000,
+        close: true,
+        gravity: "top",
+        position: "right",
+        backgroundColor: type === 'success' ? "#28a745" : "#dc3545",
+    }).showToast();
+}
+
+// Función para reinicializar eventos del carrito
+function initializeCartEvents() {
+    // Reinicializar cualquier evento que necesite el widget del carrito
+    const inputs = document.querySelectorAll('#carroWidget input[type="number"]');
+    inputs.forEach(input => {
+        input.addEventListener('change', function() {
+            actualizarCantidad(this);
+        });
+    });
+}
+
+function updateCartModal() {
+    fetch('/carro/widget/', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        const cartModal = document.querySelector('#cartModal .modal-body');
+        if (cartModal) {
+            cartModal.innerHTML = html;
+        }
+
+        // También actualizar cualquier otro widget del carrito en la página
+        const carroWidget = document.querySelector('#carroWidget');
+        if (carroWidget) {
+            carroWidget.innerHTML = html;
+        }
+    })
+    .catch(error => console.error('Error:', error));
+}
+
+let pedidosPendientesModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar todos los carruseles
+    var carousels = document.querySelectorAll('.carousel');
+    carousels.forEach(function(carousel) {
+        new bootstrap.Carousel(carousel, {
+            interval: false // Deshabilitar rotación automática
+        });
+    });
+
+    // Initialize the pedidos pendientes modal properly
+    const modalEl = document.getElementById('pedidosPendientesModal');
+    pedidosPendientesModal = new bootstrap.Modal(modalEl, {
+        keyboard: true,
+        backdrop: true
+    });
+
+    // Add event listener for close button
+    const closeBtn = modalEl.querySelector('.btn-close');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            pedidosPendientesModal.hide();
+        });
+    }
+
+    // Add event listener for secondary close button
+    const secondaryCloseBtn = modalEl.querySelector('.btn-secondary');
+    if (secondaryCloseBtn) {
+        secondaryCloseBtn.addEventListener('click', function() {
+            pedidosPendientesModal.hide();
+        });
+    }
+});
+
+function mostrarPedidosPendientes(materialId) {
+    const listaPedidos = document.getElementById('listaPedidosPendientes');
+    listaPedidos.innerHTML = '<div class="text-center"><div class="spinner-border text-light" role="status"></div></div>';
+
+    pedidosPendientesModal.show();
+
+    fetch(`/inventario/pedidos-pendientes/${materialId}/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.pedidos && data.pedidos.length > 0) {
+                let html = '<div class="list-group bg-dark">';
+                data.pedidos.forEach(pedido => {
+                    html += `
+                        <div class="list-group-item bg-dark text-white border-light">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <h6 class="mb-1">Pedido #${pedido.id}</h6>
+                                    <p class="mb-1 text-muted">Gestor: ${pedido.gestor}</p>
+                                    <small>Cantidad: ${pedido.cantidad}</small>
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <small class="text-muted me-2">${pedido.fecha}</small>
+                                    {% if user.is_superuser %}
+                                    <a href="/pedidos/detalle/${pedido.id}" class="btn btn-info btn-sm">
+                                        <i class="fas fa-eye me-1"></i>Ver
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                listaPedidos.innerHTML = html;
+            } else {
+                listaPedidos.innerHTML = '<p class="text-center">No hay pedidos pendientes para este material.</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            listaPedidos.innerHTML = '<p class="text-center text-danger">Error al cargar los pedidos pendientes.</p>';
+        });
+}
+
+function mostrarImagenesModal(materialId) {
+    const modal = document.getElementById('imagenesModal');
+    const carouselInner = modal.querySelector('.carousel-inner');
+    const carousel = modal.querySelector('#imagenesCarousel');
+    const prevButton = carousel.querySelector('.carousel-control-prev');
+    const nextButton = carousel.querySelector('.carousel-control-next');
+
+    // Hide controls by default
+    prevButton.style.display = 'none';
+    nextButton.style.display = 'none';
+
+    // Show loading state
+    carouselInner.innerHTML = '<div class="text-center p-5"><div class="spinner-border text-light" role="status"></div></div>';
+
+    // Show modal
+    const imagenesModal = new bootstrap.Modal(modal);
+    imagenesModal.show();
+
+    fetch(`/inventario/material/${materialId}/imagenes/`)
+        .then(response => response.json())
+        .then(data => {
+            let html = '';
+
+            // Add main image
+            html += `
+                <div class="carousel-item active">
+                    <img src="${data.imagen.url}" class="d-block" alt="Imagen principal">
+                </div>
+            `;
+
+            // Add secondary images and show controls only if there are secondary images
+            if (data.imagenes_secundarias && data.imagenes_secundarias.length > 0) {
+                data.imagenes_secundarias.forEach(imagen => {
+                    html += `
+                        <div class="carousel-item">
+                            <img src="${imagen.url}"
+                                 class="d-block"
+                                 alt="Imagen secundaria">
+                        </div>
+                    `;
+                });
+
+                // Show carousel controls only if there are multiple images
+                prevButton.style.display = 'flex';
+                nextButton.style.display = 'flex';
+            }
+
+            carouselInner.innerHTML = html;
+
+            // Initialize carousel
+            const carouselInstance = new bootstrap.Carousel(carousel, {
+                interval: false, // Disable auto sliding
+                keyboard: true,
+                touch: true,
+                wrap: true
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            carouselInner.innerHTML = '<p class="text-center text-danger p-5">Error al cargar las imágenes.</p>';
+        });
+}
+</script>
+<style>
+.carousel-item {
+    transition: transform .15s ease-in-out !important; /* Reduced transition time */
+}
+
+.carousel.slide {
+    transition-duration: 150ms; /* Faster slide transition */
+}
+
+.modal .carousel-item img {
+    max-height: 70vh;
+    width: auto;
+    margin: 0 auto;
+    object-fit: contain;
+    padding: 1rem;
+}
+
+/* Enhanced carousel controls */
+.carousel-control-prev,
+.carousel-control-next {
+    width: 45px;
+    height: 45px;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    opacity: 0;
+    transition: all 0.2s ease;
+    padding: 10px;
+    margin: 0 15px;
+}
+
+.carousel-control-prev {
+    left: 0;
+}
+
+.carousel-control-next {
+    right: 0;
+}
+
+.carousel:hover .carousel-control-prev,
+.carousel:hover .carousel-control-next {
+    opacity: 1;
+}
+
+.carousel-control-prev:hover,
+.carousel-control-next:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.modal .carousel-control-prev-icon,
+.modal .carousel-control-next-icon {
+    width: 20px;
+    height: 20px;
+    filter: drop-shadow(0 0 2px rgba(255,255,255,0.3));
+}
+
+/* Agregar al bloque de estilos existente */
+.text-decoration-line-through {
+    text-decoration: line-through;
+    color: #6c757d;
+    font-size: 0.9em;
+}
+
+.badge.bg-danger {
+    font-size: 0.8em;
+    padding: 0.3em 0.5em;
+    margin-left: 0.5em;
+    vertical-align: middle;
+}
+
+.text-danger {
+    color: #dc3545 !important;
+    font-size: 1.2em;
+}
+
+.card-text.fw-bold.text-danger {
+    margin-top: 0.5rem;
+}
+/* Estilos para la cinta de oferta */
+.card {
+    overflow: hidden; /* Importante para que la cinta no se salga del card */
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.card-body {
+    flex: 1 1 auto;
+    padding: 1.25rem;
+}
+
+.card-footer {
+    background: none;
+    border-top: none;
+    padding: 1rem;
+    margin-top: auto;
+}
+
+.card-footer .input-group {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+}
+
+.card-footer .input-group .form-control-sm {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+    height: calc(1.8125rem + 2px);
+}
+
+.card-footer .input-group .btn {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+    display: flex;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+}
+
+.card-footer .input-group .btn i {
+    margin-right: 0.25rem;
+}
+
+.ribbon-wrapper {
+    width: 85px;
+    height: 88px;
+    overflow: hidden;
+    position: absolute;
+    top: -3px;
+    left: -3px;
+    z-index: 1;
+}
+
+.ribbon {
+    font-size: 12px;
+    font-weight: bold;
+    color: #FFF;
+    text-transform: uppercase;
+    text-align: center;
+    line-height: 20px;
+    transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
+    width: 120px;
+    display: block;
+    background: #dc3545;
+    background: linear-gradient(#dc3545 0%, #dc3545 100%);
+    box-shadow: 0 3px 10px -5px rgba(0, 0, 0, 1);
+    position: absolute;
+    top: 19px;
+    left: -31px;
+}
+
+.ribbon:before,
+.ribbon:after {
+    content: "";
+    border-top: 3px solid #dc3545;
+    border-left: 3px solid transparent;
+    border-right: 3px solid transparent;
+    position: absolute;
+    bottom: -3px;
+}
+
+.ribbon:before {
+    left: 0;
+}
+
+.ribbon:after {
+    right: 0;
+}
+
+.featured-star {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1;
+}
+
+.featured-star i {
+    color: #ffc107;
+    font-size: 24px;
+    filter: drop-shadow(0 0 2px rgba(0,0,0,0.5));
+}
+</style>
+
+

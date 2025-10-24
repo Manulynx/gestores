@@ -1,0 +1,73 @@
+{% extends 'gestorapp/base.html' %}
+{% load static %}
+
+{% block titulo %}Eliminar Cliente{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-6 mx-auto">
+            <div class="card border-danger">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación
+                    </h4>
+                </div>
+                
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-warning"></i>
+                        <strong>¡Atención!</strong> Esta acción no se puede deshacer.
+                    </div>
+
+                    <p class="mb-4">
+                        ¿Estás seguro de que deseas eliminar al cliente?
+                    </p>
+
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6 class="card-title">
+                                <i class="fas fa-user"></i> {{ cliente.get_full_name }}
+                            </h6>
+                            <p class="card-text mb-1">
+                                <strong>Carnet:</strong> {{ cliente.carnet_identidad }}
+                            </p>
+                            <p class="card-text mb-1">
+                                <strong>Teléfono:</strong> {{ cliente.telefono }}
+                            </p>
+                            <p class="card-text">
+                                <small class="text-muted">
+                                    Registrado el {{ cliente.created_at|date:"d/m/Y H:i" }}
+                                </small>
+                            </p>
+                        </div>
+                    </div>
+
+                    <form method="POST" class="mt-4">
+                        {% csrf_token %}
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-trash"></i> Confirmar Eliminación
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card.border-danger {
+    border-width: 2px;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+</style>
+{% endblock %}

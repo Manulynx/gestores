@@ -1,0 +1,160 @@
+<div class="d-flex gap-2 mb-4">
+    <!-- Barra de búsqueda -->
+    <div class="input-group">
+        <span class="input-group-text">
+            <i class="fas fa-search"></i>
+        </span>
+        <input type="text" 
+               id="searchInput"
+               name="search" 
+               class="form-control bg-dark text-white border-secondary" 
+               placeholder="Buscar por nombre o código..."
+               value="{{ search_query|default:'' }}"
+               autocomplete="off">
+    </div>
+    
+    <!-- Filtro de categoría -->
+    <div class="input-group">
+        <select id="categoriaSelect" name="categoria" class="form-control bg-dark text-white border-secondary">
+            <option value="">Todas las categorías</option>
+            {% for categoria in categorias %}
+                <option value="{{ categoria.id }}"
+                    {% if categoria.id|stringformat:"s" == categoria_seleccionada %}selected{% endif %}>
+                    {{ categoria.nombre }}
+                </option>
+            {% endfor %}
+        </select>
+        {% if request.resolver_match.url_name == 'editar_inventario' and user.is_superuser %}
+            <div class="dropdown">
+                <button type="button" 
+                        class="btn btn-success dropdown-toggle"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                        title="Gestionar categorías">
+                    <i class="fas fa-cog"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark">
+                    <li>
+                        <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#nuevaCategoriaModal">
+                            <i class="fas fa-plus me-2"></i>Crear categoría
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editarCategoriaModal">
+                            <i class="fas fa-edit me-2"></i>Modificar categoría
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#eliminarCategoriaModal">
+                            <i class="fas fa-trash me-2"></i>Eliminar categoría
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.input-group {
+    flex: 1;
+}
+
+.input-group-text {
+    background-color: rgba(33, 37, 41, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    color: #fff;
+}
+
+.form-control {
+    background-color: rgba(33, 37, 41, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.form-control:focus {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    box-shadow: none;
+}
+
+.dropdown-menu {
+    margin-top: 0.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-item {
+    color: #fff;
+    padding: 0.5rem 1rem;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+@media (max-width: 576px) {
+    .d-flex {
+        flex-direction: column;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const categoriaSelect = document.getElementById('categoriaSelect');
+    let searchTimeout;
+
+    function performSearch() {
+        const searchTerm = searchInput.value;
+        const categoria = categoriaSelect.value;
+        const currentUrl = new URL(window.location.href);
+        
+        if (searchTerm) {
+            currentUrl.searchParams.set('search', searchTerm);
+        } else {
+            currentUrl.searchParams.delete('search');
+        }
+        
+        if (categoria) {
+            currentUrl.searchParams.set('categoria', categoria);
+        } else {
+            currentUrl.searchParams.delete('categoria');
+        }
+
+        fetch(currentUrl, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.text())
+        .then(html => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newCards = doc.querySelector('.card-container');
+            document.querySelector('.card-container').innerHTML = newCards.innerHTML;
+            window.history.pushState({}, '', currentUrl);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('Error al realizar la búsqueda', 'error');
+        });
+    }
+
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(performSearch, 300);
+    });
+
+    categoriaSelect.addEventListener('change', performSearch);
+
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            performSearch();
+        }
+    });
+});
+</script>

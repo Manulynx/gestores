@@ -1,0 +1,107 @@
+{% extends "gestorapp/base.html" %}
+
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Hero Section -->
+    <div class="row mb-5">
+        <div class="col-lg-12 text-center text-white">
+            <h1 class="display-4 mb-4">Bienvenido al Sistema de Gestión de Pedidos</h1>
+            <p class="lead">Una solución eficiente para administrar tu inventario y pedidos</p>
+        </div>
+    </div>
+
+    {% if user.is_authenticated %}
+        <div class="row justify-content-center">
+            {% if user.is_superuser %}
+                <!-- Gestores Card -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 bg-dark text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-users-cog fa-3x mb-3"></i>
+                            <h3 class="card-title">Gestores</h3>
+                            <p class="card-text">Administra los usuarios gestores y sus permisos en el sistema.</p>
+                            <a href="{% url 'administrar_usuarios' %}" class="btn btn-primary">Administrar Gestores</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Editar Inventario Card -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 bg-dark text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-edit fa-3x mb-3"></i>
+                            <h3 class="card-title">Editar Inventario</h3>
+                            <p class="card-text">Gestiona tu inventario de manera eficiente y mantén el control de tus productos.</p>
+                            <a href="{% url 'editar_inventario' %}" class="btn btn-primary">Editar Inventario</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pedidos Card -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 bg-dark text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                            <h3 class="card-title">Pedidos</h3>
+                            <p class="card-text">Administra tus pedidos y realiza un seguimiento efectivo de las ventas.</p>
+                            <a href="{% url 'pedidos:lista_pedidos' %}" class="btn btn-primary">Ver Pedidos</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Materiales Card -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 bg-dark text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                            <h3 class="card-title">Materiales</h3>
+                            <p class="card-text">Visualiza estadísticas y análisis de materiales.</p>
+                            <a href="{% url 'analytics_dashboard' %}" class="btn btn-primary">Ver Estadísticas</a>
+                        </div>
+                    </div>
+                </div>
+            {% else %}
+                <!-- Inventario Card para usuarios normales -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 bg-dark text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-box fa-3x mb-3"></i>
+                            <h3 class="card-title">Inventario</h3>
+                            <p class="card-text">Agrega los productos al carrito y crea pedidos para tus clientes</p>
+                            <a href="{% url 'inventario' %}" class="btn btn-primary">Ir al Inventario</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pedidos Card para usuarios normales -->
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 bg-dark text-white">
+                        <div class="card-body text-center">
+                            <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                            <h3 class="card-title">Pedidos</h3>
+                            <p class="card-text">Gestiona y realiza seguimiento de tus pedidos.</p>
+                            <a href="{% url 'pedidos:lista_pedidos' %}" class="btn btn-primary">Ver Pedidos</a>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    {% else %}
+        <!-- Card para usuarios no autenticados -->
+        <div class="row justify-content-center">
+            <div class="col-md-6 text-center">
+                <div class="card h-100 bg-dark text-white">
+                    <div class="card-body text-center">
+                        <i class="fas fa-box fa-3x mb-3"></i>
+                        <h3 class="card-title">Ver Inventario</h3>
+                        <p class="card-text">Explora nuestro catálogo de productos disponibles.</p>
+                        <a href="{% url 'inventario' %}" class="btn btn-primary">Ir al Inventario</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
